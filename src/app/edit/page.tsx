@@ -1,21 +1,22 @@
-import { DataTable } from '@/components/SearchableList/SearchableList';
-import { columns } from './columns';
-import { PrismaClient, Resources } from '@prisma/client';
+import { DataTable } from "@/components/SearchableList/SearchableList";
+import { columns } from "./columns";
+import { PrismaClient, type Resources } from "@prisma/client";
+import { useMutation } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { api } from "@/trpc/server";
 
 const prisma = new PrismaClient();
 
-async function getData(): Promise<Resources[]> {
-    return await prisma.resources.findMany();
-}
-
 export default async function DemoPage() {
-    const data = await getData();
+  const data = useMemo(async () => {
+    return await api.resource.getAll();
+  }, []);
 
-    return (
-        <>
-            <div className='flex px-10 py-10'>
-                <DataTable columns={columns} initialData={data} />
-            </div>
-        </>
-    );
+  return (
+    <>
+      <div className="flex px-10 py-10">
+        <DataTable columns={columns} initialData={data} />
+      </div>
+    </>
+  );
 }

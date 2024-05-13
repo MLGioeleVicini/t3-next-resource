@@ -33,6 +33,8 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { api } from "@/trpc/server";
+import { type Resources } from "@prisma/client";
+import { useMutation } from "@tanstack/react-query";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -45,15 +47,25 @@ declare module "@tanstack/table-core" {
   }
 }
 
+// async function updateDataFn(resource: Resources) {
+//   await api.resource.update(resource);
+// }
+
 export function DataTable<TData, TValue>({
   columns,
   initialData,
 }: DataTableProps<TData, TValue>) {
-  const [data, setData] = useState(initialData);
+  const [data, setData] = useState<TData[]>(initialData);
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+
+  // const updateData = api.resource.update.useMutation({
+  //   onSuccess: () => {
+  //     console.log("fatto");
+  //   },
+  // });
 
   const table = useReactTable({
     data,
@@ -74,8 +86,18 @@ export function DataTable<TData, TValue>({
     },
 
     meta: {
-      updateData: (rowIndex, columnId, value): void => {
+      updateData: (rowIndex, columnId, value) => {
         //await UpdateDBData(rowIndex, columnId, value);
+
+        // let resource = data[rowIndex];
+
+        // resource = {
+        //   ...resource!,
+        //   [columnId]: value,
+        // };
+
+        // updateDataFn(resource).then(console.log("fdsfsdfdsdfdsfsd"));
+
         console.log(rowIndex, columnId, value);
       },
     },
