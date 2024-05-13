@@ -3,6 +3,7 @@
 
 generator client {
     provider = "prisma-client-js"
+    //previewFeatures = ["multiSchema"]
 }
 
 datasource db {
@@ -12,6 +13,30 @@ datasource db {
     // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
     // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
     url      = env("DATABASE_URL")
+    //schemas  = ["CookieMan", "prj"]
+}
+
+model Localizations {
+    id_localization    Int         @id @default(autoincrement())
+    localization_code  String
+    localization_title String
+    is_default         Boolean
+    Resources          Resources[]
+
+    //@@schema("prj")
+}
+
+model Resources {
+    id_resources       Int            @id @default(autoincrement())
+    resource_extension String?
+    id_localization    Int?
+    page_keys          String?
+    resource_key       String
+    resource_value     String
+    last_modified      DateTime       @updatedAt
+    Localizations      Localizations? @relation(fields: [id_localization], references: [id_localization], onDelete: NoAction, onUpdate: NoAction)
+
+    //@@schema("prj")
 }
 
 model Post {
