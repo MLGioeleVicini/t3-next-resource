@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/table";
 
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Input } from "../ui/input";
 import {
   DropdownMenu,
@@ -32,10 +32,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { api } from "@/trpc/server";
-import { type Resources } from "@prisma/client";
-import { useMutation } from "@tanstack/react-query";
-
+import { api } from "@/trpc/react";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   initialData: TData[];
@@ -55,17 +52,17 @@ export function DataTable<TData, TValue>({
   columns,
   initialData,
 }: DataTableProps<TData, TValue>) {
-  const [data, setData] = useState<TData[]>(initialData);
+  const data = useMemo(() => initialData, []);
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
-  // const updateData = api.resource.update.useMutation({
-  //   onSuccess: () => {
-  //     console.log("fatto");
-  //   },
-  // });
+  const updateData = api.resource.update.useMutation({
+    onSuccess: (): void => {
+      console.log("fatto");
+    },
+  });
 
   const table = useReactTable({
     data,
@@ -87,25 +84,23 @@ export function DataTable<TData, TValue>({
 
     meta: {
       updateData: (rowIndex, columnId, value) => {
-        //await UpdateDBData(rowIndex, columnId, value);
+        let resource = data[rowIndex];
 
-        // let resource = data[rowIndex];
+        resource = {
+          ...resource!,
+          [columnId]: value,
+        };
 
-        // resource = {
-        //   ...resource!,
-        //   [columnId]: value,
-        // };
+        updateData.mutate(resource);
 
-        // updateDataFn(resource).then(console.log("fdsfsdfdsdfdsfsd"));
-
-        console.log(rowIndex, columnId, value);
+        console.log(resource);
       },
     },
   });
 
   return (
     <div>
-      <div className="flex items-center py-4">
+      <div className="flex items-center gap-5 py-4">
         <Input
           placeholder="Search Key"
           value={

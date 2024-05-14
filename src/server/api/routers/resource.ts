@@ -18,7 +18,7 @@ export const resourceRouter = createTRPCRouter({
         resource_value: z.string().min(1),
       }),
     )
-    .mutation(async ({ ctx, input }) => {
+    .mutation(({ ctx, input }) => {
       return ctx.db.resources.update({
         where: {
           id_resources: input.id_resources,

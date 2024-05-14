@@ -9,7 +9,7 @@ import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
  */
 export const appRouter = createTRPCRouter({
   post: postRouter,
-  resource: resourceRouter
+  resource: resourceRouter,
 });
 
 // export type definition of API

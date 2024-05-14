@@ -1,16 +1,11 @@
-import { DataTable } from "@/components/SearchableList/SearchableList";
-import { columns } from "./columns";
-import { PrismaClient, type Resources } from "@prisma/client";
-import { useMutation } from "@tanstack/react-query";
-import { useMemo } from "react";
 import { api } from "@/trpc/server";
-
-const prisma = new PrismaClient();
+import { useMemo, useState } from "react";
+import { columns } from "./columns";
+import { DataTable } from "@/components/SearchableList/SearchableList";
+import { type Resources } from "@prisma/client";
 
 export default async function DemoPage() {
-  const data = useMemo(async () => {
-    return await api.resource.getAll();
-  }, []);
+  const data: Array<Resources> = await api.resource.getAll();
 
   return (
     <>

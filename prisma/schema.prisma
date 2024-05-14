@@ -1,98 +1,76 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-    provider = "prisma-client-js"
-    //previewFeatures = ["multiSchema"]
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
-    provider = "sqlite"
-    // NOTE: When using mysql or sqlserver, uncomment the @db.Text annotations in model Account below
-    // Further reading:
-    // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
-    // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
-    url      = env("DATABASE_URL")
-    //schemas  = ["CookieMan", "prj"]
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+  schemas  = ["CookieMan", "User", "prj"]
 }
 
 model Localizations {
-    id_localization    Int         @id @default(autoincrement())
-    localization_code  String
-    localization_title String
-    is_default         Boolean
-    Resources          Resources[]
+  id_localization    Int         @id @default(autoincrement())
+  localization_code  String
+  localization_title String
+  is_default         Boolean
+  Resources          Resources[]
 
-    //@@schema("prj")
+  @@schema("prj")
 }
 
 model Resources {
-    id_resources       Int            @id @default(autoincrement())
-    resource_extension String?
-    id_localization    Int?
-    page_keys          String?
-    resource_key       String
-    resource_value     String
-    last_modified      DateTime       @updatedAt
-    Localizations      Localizations? @relation(fields: [id_localization], references: [id_localization], onDelete: NoAction, onUpdate: NoAction)
+  id_resources       Int            @id @default(autoincrement())
+  resource_extension String?
+  id_localization    Int?
+  page_keys          String?
+  resource_key       String
+  resource_value     String
+  last_modified      DateTime @updatedAt
+  Localizations      Localizations? @relation(fields: [id_localization], references: [id_localization], onDelete: NoAction, onUpdate: NoAction)
 
-    //@@schema("prj")
-}
-
-model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    createdBy   User   @relation(fields: [createdById], references: [id])
-    createdById String
-
-    @@index([name])
-}
-
-// Necessary for Next auth
-model Account {
-    id                String  @id @default(cuid())
-    userId            String
-    type              String
-    provider          String
-    providerAccountId String
-    refresh_token     String? // @db.Text
-    access_token      String? // @db.Text
-    expires_at        Int?
-    token_type        String?
-    scope             String?
-    id_token          String? // @db.Text
-    session_state     String?
-    user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-    @@unique([provider, providerAccountId])
+  @@schema("prj")
 }
 
 model Session {
-    id           String   @id @default(cuid())
-    sessionToken String   @unique
-    userId       String
-    expires      DateTime
-    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String   @id
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  @@schema("prj")
 }
 
-model User {
-    id            String    @id @default(cuid())
-    name          String?
-    email         String?   @unique
-    emailVerified DateTime?
-    image         String?
-    accounts      Account[]
-    sessions      Session[]
-    posts         Post[]
+model Tcf22_Row_Data {
+  id_row_data      Int     @id(map: "PK_Tcf22_Row_Data") @default(autoincrement())
+  row_data_type    String? @db.VarChar(16)
+  row_data_version Int?
+  row_data_json    String? @db.VarChar(Max)
+
+  @@schema("CookieMan")
 }
 
-model VerificationToken {
-    identifier String
-    token      String   @unique
-    expires    DateTime
+model Tcf22_Vendors {
+  id_vendor                       Int       @id(map: "PK_Tcf22_Vendors") @default(autoincrement())
+  vendor_tcf_id                   Int
+  vendor_version                  String    @db.VarChar(32)
+  vendor_tcf_policy_version       String?   @db.VarChar(64)
+  ids_consent_purpose             String?   @db.VarChar(4096)
+  ids_legitimate_interest_purpose String?   @db.VarChar(4096)
+  ids_special_purpose             String?   @db.VarChar(4096)
+  ids_feature                     String?   @db.VarChar(4096)
+  ids_data_declaration            String?   @db.VarChar(4096)
+  ids_special_feature             String?   @db.VarChar(4096)
+  vendor_name                     String?   @db.VarChar(1024)
+  vendor_cookie_max_age           BigInt?
+  vendor_use_cookies              Boolean?
+  vendor_cookie_refresh           Boolean?
+  vendor_uses_non_cookie_access   Boolean?
+  vendor_deleted_date             DateTime? @db.Date
+  vendor_storage_disclosure_url   String?   @db.VarChar(4096)
+  vendor_standard_data_retention  String?   @db.VarChar(32)
+  vendor_data_retention           String?   @db.VarChar(Max)
+  vendor_urls                     String?   @db.VarChar(Max)
 
-    @@unique([identifier, token])
+  @@schema("CookieMan")
 }
