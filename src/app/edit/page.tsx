@@ -9,7 +9,7 @@ export default async function DemoPage() {
 
   return (
     <>
-      <div className="flex px-10 py-10">
+      <div className="px-10 py-10">
         <DataTable columns={columns} initialData={data} />
       </div>
     </>
