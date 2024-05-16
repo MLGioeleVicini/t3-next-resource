@@ -84,7 +84,7 @@ export function DataTable<TData, TValue>({
 
     meta: {
       updateData: (rowIndex, columnId, value) => {
-        let resource = data[rowIndex];
+        let resource: unknown = data[rowIndex];
 
         resource = {
           ...resource!,

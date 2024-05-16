@@ -9,34 +9,17 @@ datasource db {
   schemas  = ["CookieMan", "User", "prj"]
 }
 
-model Localizations {
-  id_localization    Int         @id @default(autoincrement())
-  localization_code  String
-  localization_title String
-  is_default         Boolean
-  Resources          Resources[]
-
-  @@schema("prj")
-}
-
 model Resources {
-  id_resources       Int            @id @default(autoincrement())
-  resource_extension String?
+  id_resources       Int            @id(map: "PK_Resources") @default(autoincrement())
+  resource_extension String?        @db.VarChar(128)
   id_localization    Int?
-  page_keys          String?
-  resource_key       String
-  resource_value     String
-  last_modified      DateTime @updatedAt
-  Localizations      Localizations? @relation(fields: [id_localization], references: [id_localization], onDelete: NoAction, onUpdate: NoAction)
-
-  @@schema("prj")
-}
-
-model Session {
-  id           String   @id
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
+  page_keys          String?        @db.VarChar(2048)
+  resource_key       String         @db.VarChar(128)
+  resource_value     String         @db.VarChar(4096)
+  directive_key      String?        @db.VarChar(128)
+  directive_value    String?        @db.VarChar(4096)
+  last_modified      DateTime       @default(now(), map: "DF_Resources_last_modified") @updatedAt
+  Localizations      Localizations? @relation(fields: [id_localization], references: [id_localization], onDelete: NoAction, onUpdate: NoAction, map: "FK_Resources_Localizations")
 
   @@schema("prj")
 }
@@ -50,8 +33,8 @@ model Tcf22_Row_Data {
   @@schema("CookieMan")
 }
 
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model Tcf22_Vendors {
-  id_vendor                       Int       @id(map: "PK_Tcf22_Vendors") @default(autoincrement())
   vendor_tcf_id                   Int
   vendor_version                  String    @db.VarChar(32)
   vendor_tcf_policy_version       String?   @db.VarChar(64)
@@ -71,6 +54,1677 @@ model Tcf22_Vendors {
   vendor_standard_data_retention  String?   @db.VarChar(32)
   vendor_data_retention           String?   @db.VarChar(Max)
   vendor_urls                     String?   @db.VarChar(Max)
+
+  @@ignore
+  @@schema("CookieMan")
+}
+
+model Addresses {
+  id_address                                Int                 @id(map: "PK_Addresses") @default(autoincrement())
+  id_nation                                 Int
+  id_municipality                           Int
+  id_company                                Int?
+  address_code                              String?             @db.VarChar(8)
+  address_name                              String?             @db.VarChar(64)
+  address_address                           String?             @db.VarChar(256)
+  address_municipality                      String?             @db.VarChar(256)
+  address_zip_code                          String?             @db.VarChar(16)
+  address_mobile                            String?             @db.VarChar(64)
+  address_phone                             String?             @db.VarChar(64)
+  address_fax                               String?             @db.VarChar(64)
+  address_email                             String?             @db.VarChar(128)
+  main_address                              Boolean?            @default(true, map: "DF_Addresses_main_address")
+  Companies_Addresses_id_companyToCompanies Companies?          @relation("Addresses_id_companyToCompanies", fields: [id_company], references: [id_company], onDelete: NoAction, onUpdate: NoAction, map: "FK_Addresses_Companies")
+  Municipalities                            Municipalities      @relation(fields: [id_municipality], references: [id_municipality], onUpdate: NoAction, map: "FK_Addresses_Municipalities")
+  Nations                                   Nations             @relation(fields: [id_nation], references: [id_nation], onUpdate: NoAction, map: "FK_Addresses_Nations")
+  Addresses_JOURNAL                         Addresses_JOURNAL[]
+  Companies_Companies_id_addressToAddresses Companies[]         @relation("Companies_id_addressToAddresses")
+
+  @@schema("CookieMan")
+}
+
+model Addresses_JOURNAL {
+  id_row         Int            @id(map: "PK_Addresses_JOURNAL") @default(autoincrement())
+  id_address     Int
+  id_journal     Int
+  dt_ins         DateTime?      @default(now(), map: "DF_Addresses_JOURNAL_dt_ins") @db.SmallDateTime
+  deltalized     String         @db.VarChar(Max)
+  Addresses      Addresses      @relation(fields: [id_address], references: [id_address], onUpdate: NoAction, map: "FK_Addresses_JOURNAL_Addresses")
+  JOURNAL_Master JOURNAL_Master @relation(fields: [id_journal], references: [id_journal], onUpdate: NoAction, map: "FK_Addresses_JOURNAL_JOURNAL_Master")
+
+  @@schema("CookieMan")
+}
+
+model ApplicationTasks {
+  id_application_task Int       @id(map: "PK_ApplicationTasks") @default(autoincrement())
+  task_code           String?   @db.VarChar(64)
+  task_subcode        String?   @db.VarChar(128)
+  task_status_code    String?   @db.VarChar(64)
+  task_ref_id         String?   @db.VarChar(64)
+  task_ref_code       String?   @db.VarChar(128)
+  task_ref_subcode    String?   @db.VarChar(64)
+  dt_ins              DateTime? @db.SmallDateTime
+  dt_execute_after    DateTime? @db.SmallDateTime
+  dt_executed         DateTime? @db.SmallDateTime
+  task_result_code    String?   @db.VarChar(64)
+  task_result_message String?   @db.VarChar(4096)
+  task_trace          String?   @db.VarChar(Max)
+
+  @@schema("prj")
+}
+
+model BlackList {
+  id_black_list           Int       @id(map: "PK_BlackList") @default(autoincrement())
+  black_list_ip           String    @db.VarChar(32)
+  id_company_website_form Int?
+  dt_ins                  DateTime? @db.DateTime
+  dt_last_call            DateTime? @db.DateTime
+  call_count              Int?
+
+  @@schema("CookieMan")
+}
+
+model Communication_Message {
+  id_communication_message       Int                     @id(map: "PK_Communication_Message") @default(autoincrement())
+  id_communication_template      Int?
+  id_communication_smtp          Int?
+  id_company                     Int?
+  id_user                        Int?
+  communication_template_code    String?                 @db.VarChar(64)
+  communication_template_subcode String?                 @db.VarChar(128)
+  from_address                   String?                 @db.VarChar(256)
+  from_name                      String?                 @db.VarChar(256)
+  replyto_address                String?                 @db.VarChar(256)
+  replyto_name                   String?                 @db.VarChar(256)
+  address_to                     String?                 @db.VarChar(2048)
+  address_cc                     String?                 @db.VarChar(2048)
+  address_ccn                    String?                 @db.VarChar(2048)
+  message_subject                String?                 @db.VarChar(2048)
+  message_body                   String?                 @db.VarChar(Max)
+  dt_ins                         DateTime?               @db.SmallDateTime
+  dt_send                        DateTime?               @db.SmallDateTime
+  retry_count                    Int?
+  dt_sended                      DateTime?               @db.SmallDateTime
+  Communication_Smtp             Communication_Smtp?     @relation(fields: [id_communication_smtp], references: [id_communication_smtp], onDelete: NoAction, onUpdate: NoAction, map: "FK_Communication_Message_Communication_Smtp")
+  Communication_Template         Communication_Template? @relation(fields: [id_communication_template], references: [id_communication_template], onDelete: NoAction, onUpdate: NoAction, map: "FK_Communication_Message_Communication_Template")
+  Users                          Users?                  @relation(fields: [id_user], references: [id_user], onDelete: NoAction, onUpdate: NoAction, map: "FK_Communication_Message_Users")
+
+  @@schema("prj")
+}
+
+model Communication_Smtp {
+  id_communication_smtp Int                     @id(map: "PK_Communication_Smtp") @default(autoincrement())
+  id_company            Int?
+  host                  String?                 @db.VarChar(256)
+  port                  String?                 @db.VarChar(256)
+  enable_ssl            Boolean?
+  auth_required         Boolean?
+  username              String?                 @db.VarChar(256)
+  password              String?                 @db.VarChar(256)
+  from_address          String?                 @db.VarChar(256)
+  from_name             String?                 @db.VarChar(256)
+  retry_number          Int?
+  retry_delay           Int?
+  test_result           String?                 @db.VarChar(1024)
+  available             Boolean
+  Communication_Message Communication_Message[]
+
+  @@schema("prj")
+}
+
+model Communication_Template {
+  id_communication_template          Int                     @id(map: "PK_Communication_Template") @default(autoincrement())
+  id_company                         Int?
+  communication_template_code        String?                 @db.VarChar(64)
+  communication_template_subcode     String?                 @db.VarChar(64)
+  communication_template_name        String?                 @db.VarChar(128)
+  communication_template_address_to  String?                 @db.VarChar(2048)
+  communication_template_address_cc  String?                 @db.VarChar(2048)
+  communication_template_address_ccn String?                 @db.VarChar(2048)
+  communication_template_subject     String?                 @db.VarChar(2048)
+  communication_template_body        String?                 @db.VarChar(Max)
+  available                          Boolean
+  Communication_Message              Communication_Message[]
+
+  @@schema("prj")
+}
+
+model Companies {
+  id_company                                Int                     @id(map: "PK_Companies") @default(autoincrement())
+  idS_company_type                          String                  @db.VarChar(32)
+  id_company_status                         Int?
+  id_address                                Int?
+  company_code                              String?                 @db.VarChar(32)
+  company_name                              String                  @db.VarChar(128)
+  company_description                       String?                 @db.VarChar(2048)
+  company_generic_reference                 String?                 @db.VarChar(2048)
+  company_generic_phone                     String?                 @db.VarChar(2048)
+  company_contact_preference                String?                 @db.VarChar(32)
+  company_reference_info                    String?                 @db.VarChar(256)
+  company_notifications_reference           String?                 @db.VarChar(2048)
+  company_licence_reference                 String?                 @db.VarChar(2048)
+  company_website                           String?                 @db.VarChar(256)
+  company_fiscal_code                       String?                 @db.VarChar(32)
+  company_VAT                               String?                 @db.VarChar(32)
+  company_logo_file                         String?                 @db.VarChar(128)
+  company_notes                             String?                 @db.VarChar(4096)
+  company_notes_system                      String?                 @db.VarChar(4096)
+  company_smtp_type                         String?                 @db.VarChar(32)
+  nr_sites_limit                            Int?
+  nr_fences_limit                           Int?
+  chk_info                                  String?                 @db.VarChar(4096)
+  trace                                     String?                 @db.VarChar(4096)
+  data_completed                            Boolean
+  Addresses_Addresses_id_companyToCompanies Addresses[]             @relation("Addresses_id_companyToCompanies")
+  Addresses_Companies_id_addressToAddresses Addresses?              @relation("Companies_id_addressToAddresses", fields: [id_address], references: [id_address], onDelete: NoAction, onUpdate: NoAction, map: "FK_Companies_Addresses")
+  Company_States                            Company_States?         @relation(fields: [id_company_status], references: [id_company_status], onDelete: NoAction, onUpdate: NoAction, map: "FK_Companies_Company_States")
+  Companies_JOURNAL                         Companies_JOURNAL[]
+  Company_Departments                       Company_Departments[]
+  Company_Forms                             Company_Forms[]
+  Company_Localizations                     Company_Localizations[]
+  Company_Socials                           Company_Socials[]
+  Company_Websites                          Company_Websites[]
+  Cookies                                   Cookies[]
+  Users_ex                                  Users_ex[]
+  Users_JobOccupations                      Users_JobOccupations[]
+
+  @@schema("CookieMan")
+}
+
+model Companies_JOURNAL {
+  id_row         Int            @id(map: "PK_Companies_JOURNAL") @default(autoincrement())
+  id_company     Int
+  id_journal     Int
+  dt_ins         DateTime?      @db.SmallDateTime
+  deltalized     String         @db.VarChar(Max)
+  Companies      Companies      @relation(fields: [id_company], references: [id_company], onUpdate: NoAction, map: "FK_Companies_JOURNAL_Companies")
+  JOURNAL_Master JOURNAL_Master @relation(fields: [id_journal], references: [id_journal], onUpdate: NoAction, map: "FK_Companies_JOURNAL_JOURNAL_Master")
+
+  @@schema("CookieMan")
+}
+
+model Company_Departments {
+  id_company_department       Int                           @id(map: "PK_Company_Departments") @default(autoincrement())
+  id_company                  Int
+  department_code             String?                       @db.VarChar(32)
+  department_name             String                        @db.VarChar(128)
+  department_description      String?                       @db.VarChar(4096)
+  available                   Boolean
+  Companies                   Companies                     @relation(fields: [id_company], references: [id_company], onUpdate: NoAction, map: "FK_Company_Departments_Companies")
+  Company_Departments_JOURNAL Company_Departments_JOURNAL[]
+
+  @@schema("CookieMan")
+}
+
+model Company_Departments_JOURNAL {
+  id_row                Int                 @id(map: "PK_Company_Departments_JOURNAL") @default(autoincrement())
+  id_company_department Int
+  id_journal            Int
+  dt_ins                DateTime?           @db.SmallDateTime
+  deltalized            String              @db.VarChar(Max)
+  Company_Departments   Company_Departments @relation(fields: [id_company_department], references: [id_company_department], onUpdate: NoAction, map: "FK_Company_Departments_JOURNAL_Company_Departments")
+  JOURNAL_Master        JOURNAL_Master      @relation(fields: [id_journal], references: [id_journal], onUpdate: NoAction, map: "FK_Company_Departments_JOURNAL_JOURNAL_Master")
+
+  @@schema("CookieMan")
+}
+
+model Company_Form_Fields {
+  id_company_form_field            Int                                @id(map: "PK_Company_Form_Fields") @default(autoincrement())
+  id_company_form                  Int
+  field_order                      Int
+  field_type                       String?                            @db.VarChar(64)
+  field_label                      String?                            @db.VarChar(256)
+  field_column_name                String?                            @db.VarChar(128)
+  field_placeholder                String?                            @db.VarChar(256)
+  field_validator_type             String?                            @db.VarChar(64)
+  field_validator_message          String?                            @db.VarChar(1024)
+  field_text                       String?                            @db.VarChar(2048)
+  field_text_a                     String?                            @db.VarChar(Max)
+  field_text_b                     String?                            @db.VarChar(Max)
+  field_height                     Int?
+  field_elements                   String?                            @db.VarChar(4096)
+  field_first_element_visible      Boolean?
+  field_max_file_size              Int?
+  field_attach                     String?                            @db.VarChar(32)
+  field_querystring_parameter      String?                            @db.VarChar(256)
+  field_show_mode                  String?                            @db.VarChar(32)
+  field_icon                       String?                            @db.VarChar(64)
+  field_icon_color                 String?                            @db.VarChar(64)
+  label_class_generic              String?                            @db.VarChar(1024)
+  label_class_specific             String?                            @db.VarChar(1024)
+  label_style                      String?                            @db.VarChar(2048)
+  field_class_generic              String?                            @db.VarChar(1024)
+  field_class_specific             String?                            @db.VarChar(1024)
+  field_style                      String?                            @db.VarChar(2048)
+  text_class_generic               String?                            @db.VarChar(1024)
+  text_class_specific              String?                            @db.VarChar(1024)
+  text_style                       String?                            @db.VarChar(2048)
+  Company_Forms                    Company_Forms                      @relation(fields: [id_company_form], references: [id_company_form], onUpdate: NoAction, map: "FK_Company_Form_Fields_Company_Forms")
+  Company_Website_Form_Sync_Fields Company_Website_Form_Sync_Fields[]
+
+  @@schema("CookieMan")
+}
+
+model Company_Form_Fields_JOURNAL {
+  id_row          Int       @id(map: "PK_[Company_Form_Fields_JOURNAL") @default(autoincrement())
+  id_company_form Int
+  id_journal      Int
+  dt_ins          DateTime? @db.SmallDateTime
+  xmlflow         String    @db.Xml
+
+  @@schema("CookieMan")
+}
+
+model Company_Form_Socials {
+  id_company_form_social       Int                            @id(map: "PK_Company_Form_Socials") @default(autoincrement())
+  id_company_form              Int
+  id_company_social            Int
+  form_social_order            Int?
+  Company_Forms                Company_Forms                  @relation(fields: [id_company_form], references: [id_company_form], onUpdate: NoAction, map: "FK_Company_Form_Socials_Company_Forms")
+  Company_Socials              Company_Socials                @relation(fields: [id_company_social], references: [id_company_social], onUpdate: NoAction, map: "FK_Company_Form_Socials_Company_Socials")
+  Company_Website_Form_Socials Company_Website_Form_Socials[]
+
+  @@schema("CookieMan")
+}
+
+model Company_Form_States {
+  id_company_form_status         Int             @id(map: "PK_Company_Form_States")
+  company_form_status_code       String          @db.VarChar(16)
+  company_form_status_name       String          @db.VarChar(64)
+  company_form_status_descrption String?         @db.VarChar(1024)
+  Company_Forms                  Company_Forms[]
+
+  @@schema("CookieMan")
+}
+
+model Company_Forms {
+  id_company_form              Int                            @id(map: "PK_Company_Forms") @default(autoincrement())
+  id_company                   Int?
+  id_company_form_status       Int?
+  form_token                   String?                        @db.VarChar(256)
+  form_name                    String                         @db.VarChar(64)
+  form_description             String?                        @db.VarChar(256)
+  form_updated_on              DateTime?                      @db.DateTime
+  form_version                 String?                        @db.VarChar(32)
+  form_days_of_retention       Int?
+  Company_Form_Fields          Company_Form_Fields[]
+  Company_Form_Socials         Company_Form_Socials[]
+  Companies                    Companies?                     @relation(fields: [id_company], references: [id_company], onDelete: NoAction, onUpdate: NoAction, map: "FK_Company_Forms_Companies")
+  Company_Form_States          Company_Form_States?           @relation(fields: [id_company_form_status], references: [id_company_form_status], onDelete: NoAction, onUpdate: NoAction, map: "FK_Company_Forms_Company_Form_States")
+  Company_Forms_JOURNAL        Company_Forms_JOURNAL[]
+  Company_Website_Form_Socials Company_Website_Form_Socials[]
+  Company_Website_Forms        Company_Website_Forms[]
+
+  @@schema("CookieMan")
+}
+
+model Company_Forms_JOURNAL {
+  id_row          Int            @id(map: "PK_Company_Forms_JOURNAL") @default(autoincrement())
+  id_company_form Int
+  id_journal      Int
+  dt_ins          DateTime?      @db.SmallDateTime
+  deltalized      String         @db.VarChar(Max)
+  Company_Forms   Company_Forms  @relation(fields: [id_company_form], references: [id_company_form], onUpdate: NoAction, map: "FK_Company_Forms_JOURNAL_Company_Forms")
+  JOURNAL_Master  JOURNAL_Master @relation(fields: [id_journal], references: [id_journal], onUpdate: NoAction, map: "FK_Company_Forms_JOURNAL_JOURNAL_Master")
+
+  @@schema("CookieMan")
+}
+
+model Company_Localizations {
+  id_company_localization Int           @id(map: "PK_Company_Localizations") @default(autoincrement())
+  id_company              Int
+  id_localization         Int
+  is_default              Boolean
+  Companies               Companies     @relation(fields: [id_company], references: [id_company], onUpdate: NoAction, map: "FK_Company_Localizations_Companies")
+  Localizations           Localizations @relation(fields: [id_localization], references: [id_localization], onUpdate: NoAction, map: "FK_Company_Localizations_Localizations")
+
+  @@schema("CookieMan")
+}
+
+model Company_Socials {
+  id_company_social    Int                    @id(map: "PK_Company_Socials") @default(autoincrement())
+  id_company           Int?
+  id_social            Int?
+  social_url           String?                @db.VarChar(2048)
+  custom_ico_url       String?                @db.VarChar(2048)
+  Company_Form_Socials Company_Form_Socials[]
+  Companies            Companies?             @relation(fields: [id_company], references: [id_company], onDelete: NoAction, onUpdate: NoAction, map: "FK_Company_Socials_Companies")
+  Socials              Socials?               @relation(fields: [id_social], references: [id_social], onDelete: NoAction, onUpdate: NoAction, map: "FK_Company_Socials_Socials")
+
+  @@schema("CookieMan")
+}
+
+model Company_Socials_JOURNAL {
+  id_row     Int       @id(map: "PK_Company_Socials_JOURNAL") @default(autoincrement())
+  id_company Int
+  id_journal Int
+  dt_ins     DateTime? @db.SmallDateTime
+  xmlflow    String    @db.Xml
+
+  @@schema("CookieMan")
+}
+
+model Company_States {
+  id_company_status         Int         @id(map: "PK_Company_States")
+  company_status_code       String      @db.VarChar(16)
+  company_status_name       String      @db.VarChar(64)
+  company_status_descrption String?     @db.VarChar(1024)
+  Companies                 Companies[]
+
+  @@schema("CookieMan")
+}
+
+model Company_Types {
+  id_company_type     Int     @id(map: "PK_Company_Types")
+  company_type_code   String  @db.VarChar(16)
+  company_type_name   String  @db.VarChar(64)
+  company_type_switch String? @db.VarChar(512)
+  available           Boolean
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_Crawl_Cookies {
+  id_company_website_crawl_cookie Int                        @id(map: "PK_Company_Website_Craw_Cookies") @default(autoincrement())
+  id_company_website_crawl        Int?
+  name                            String?                    @db.VarChar(64)
+  domain                          String?                    @db.VarChar(64)
+  is_secure                       Boolean?
+  is_httponly                     Boolean?
+  is_samesite                     Boolean?
+  path                            String?                    @db.VarChar(64)
+  persistence_days                String?                    @db.VarChar(64)
+  category                        String?                    @db.VarChar(256)
+  reference                       String?                    @db.VarChar(256)
+  description                     String?                    @db.VarChar(Max)
+  Company_Website_Crawlings       Company_Website_Crawlings? @relation(fields: [id_company_website_crawl], references: [id_company_website_crawl], onDelete: NoAction, onUpdate: NoAction, map: "FK_Company_Website_Craw_Cookies_Company_Website_Crawlings")
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_Crawlings {
+  id_company_website_crawl      Int                             @id(map: "PK_Company_Website_Crawlings") @default(autoincrement())
+  id_company_website            Int?
+  id_company_website_release    Int?
+  crawl_scan_type               String?                         @db.VarChar(32)
+  crawl_task_ID_ext             String?                         @db.VarChar(64)
+  crawl_unique_ID_ext           String?                         @db.VarChar(64)
+  crawled_date                  DateTime?                       @db.DateTime
+  crawl_num_cookies             Int?
+  crawl_description             String?                         @db.VarChar(1024)
+  crawl_request_raw_json        String?                         @db.VarChar(Max)
+  crawl_raw_json                String?                         @db.VarChar(Max)
+  Company_Website_Crawl_Cookies Company_Website_Crawl_Cookies[]
+  Company_Website_Releases      Company_Website_Releases?       @relation(fields: [id_company_website_release], references: [id_company_website_release], onDelete: NoAction, onUpdate: NoAction, map: "FK_Company_Website_Crawlings_Company_Website_Releases")
+  Company_Websites              Company_Websites?               @relation(fields: [id_company_website], references: [id_company_website], onDelete: NoAction, onUpdate: NoAction, map: "FK_Company_Website_Crawlings_Company_Websites")
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_Form_SavedData {
+  id_company_website_form_saveddata Int              @id(map: "PK_Company_Website_Form_SavedData") @default(autoincrement())
+  id_company_website                Int
+  id_company_form                   Int
+  id_communication_message          Int?
+  id_trace_identity                 Int
+  saveddata_ip                      String           @db.VarChar(64)
+  saveddata_dt_ins                  DateTime         @db.DateTime
+  saveddata_read                    Boolean?         @default(false, map: "DF_Company_Website_Form_SavedData_saveddata_read")
+  rawjson_data                      String           @db.VarChar(Max)
+  result_code                       String?          @db.VarChar(32)
+  result_message                    String?          @db.VarChar(1024)
+  result_value                      String?          @db.VarChar(1024)
+  result_trace                      String?          @db.VarChar(Max)
+  saveddata_lock                    Boolean          @default(false, map: "DF_Company_Website_Form_SavedData_saveddata_lock")
+  saveddata_lock_note               String?          @db.VarChar(2048)
+  Trace_Identities                  Trace_Identities @relation(fields: [id_trace_identity], references: [id_trace_identity], onUpdate: NoAction, map: "FK_Company_Website_Form_SavedData_Trace_Identities")
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_Form_Socials {
+  id_company_website_form_social Int                  @id(map: "PK_Company_Website_Form_Socials") @default(autoincrement())
+  id_company_form                Int?
+  id_company_website             Int?
+  id_company_form_social         Int
+  social_url                     String?              @db.VarChar(2048)
+  social_show                    Boolean
+  Company_Form_Socials           Company_Form_Socials @relation(fields: [id_company_form_social], references: [id_company_form_social], onUpdate: NoAction, map: "FK_Company_Website_Form_Socials_Company_Form_Socials")
+  Company_Forms                  Company_Forms?       @relation(fields: [id_company_form], references: [id_company_form], onDelete: NoAction, onUpdate: NoAction, map: "FK_Company_Website_Form_Socials_Company_Forms")
+  Company_Websites               Company_Websites?    @relation(fields: [id_company_website], references: [id_company_website], onDelete: NoAction, onUpdate: NoAction, map: "FK_Company_Website_Form_Socials_Company_Websites")
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_Form_Socials_JOURNAL {
+  id_row                  Int       @id(map: "PK_Company_Website_Form_Socials_JOURNAL") @default(autoincrement())
+  id_company_website_form Int
+  id_journal              Int
+  dt_ins                  DateTime? @db.SmallDateTime
+  xmlflow                 String    @db.Xml
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_Form_Sync_Fields {
+  id_company_website_form_sync_field Int                        @id(map: "PK_Company_Website_Form_Sync_Fields") @default(autoincrement())
+  id_company_website_form_sync       Int
+  id_company_form_field              Int
+  sync_list_field_tag                String?                    @db.VarChar(128)
+  saveddata_sync_field_required      Boolean                    @default(false, map: "DF_Company_Website_Form_Sync_Fields_saveddata_sync_field_required_1")
+  Company_Form_Fields                Company_Form_Fields        @relation(fields: [id_company_form_field], references: [id_company_form_field], onUpdate: NoAction, map: "FK_Company_Website_Form_Sync_Fields_Company_Form_Fields")
+  Company_Website_Form_Syncs         Company_Website_Form_Syncs @relation(fields: [id_company_website_form_sync], references: [id_company_website_form_sync], onUpdate: NoAction, map: "FK_Company_Website_Form_Sync_Fields_Company_Website_Form_Syncs")
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_Form_Syncs {
+  id_company_website_form_sync     Int                                @id(map: "PK_Company_Website_Form_Syncs") @default(autoincrement())
+  id_company_website_form          Int
+  sync_list_distribution_tag       String?                            @db.VarChar(2048)
+  sync_type                        String                             @db.VarChar(128)
+  saveddata_sync_type              String?                            @db.VarChar(32)
+  sync_host                        String?                            @db.VarChar(4096)
+  sync_apikey                      String?                            @db.VarChar(4096)
+  sync_lists_distribution          String?                            @db.VarChar(Max)
+  sync_lists_fields                String?                            @db.VarChar(Max)
+  sync_field_tag                   String?                            @db.VarChar(128)
+  Company_Website_Form_Sync_Fields Company_Website_Form_Sync_Fields[]
+  Company_Website_Forms            Company_Website_Forms              @relation(fields: [id_company_website_form], references: [id_company_website_form], onUpdate: NoAction, map: "FK_Company_Website_Form_Syncs_Company_Website_Forms")
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_Form_Syncs_JOURNAL {
+  id_row                       Int            @id(map: "PK_Company_Website_Form_Syncs_JOURNAL") @default(autoincrement())
+  id_company_website_form_sync Int
+  id_journal                   Int
+  dt_ins                       DateTime?      @db.SmallDateTime
+  deltalized                   String         @db.VarChar(Max)
+  JOURNAL_Master               JOURNAL_Master @relation(fields: [id_journal], references: [id_journal], onUpdate: NoAction, map: "FK_Company_Website_Form_Syncs_JOURNAL_JOURNAL_Master")
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_Forms {
+  id_company_website_form      Int                          @id(map: "PK_Company_Website_Forms") @default(autoincrement())
+  id_company_website           Int
+  id_company_form              Int
+  id_website_form_style        Int?
+  form_title                   String?                      @db.VarChar(128)
+  form_style                   String?                      @db.VarChar(64)
+  form_theme                   String?                      @db.VarChar(64)
+  form_updated_on              DateTime?                    @db.DateTime
+  form_width                   Int?
+  form_field_label_type        String?                      @db.VarChar(32)
+  form_field_border_radius     Int?
+  form_field_color             String?                      @db.VarChar(128)
+  form_saved_notification_type String?                      @db.VarChar(16)
+  form_redirect_page_on_saved  String?                      @db.VarChar(1024)
+  form_message_on_saved        String?                      @db.VarChar(1024)
+  form_message_on_error        String?                      @db.VarChar(1024)
+  form_show_reset_command      Boolean                      @default(true, map: "DF_Company_Website_Forms_form_show_reset_command")
+  form_emails_notify           String?                      @db.VarChar(256)
+  form_emails_notify_type      String                       @db.VarChar(128)
+  form_emails_from_type        String?                      @db.VarChar(32)
+  form_emails_from_address     String?                      @db.VarChar(256)
+  form_emails_from_name        String?                      @db.VarChar(256)
+  form_emails_notify_user      Boolean?                     @default(false, map: "DF_Company_Website_Forms_form_emails_notify_user")
+  form_emails_signature        String?                      @db.VarChar(Max)
+  form_background_file         String?                      @db.VarChar(128)
+  form_background_style_css    String?                      @db.VarChar(2048)
+  form_event_type              String?                      @db.VarChar(32)
+  form_event_timer_value       Int?
+  form_event_coordinate_x      Int?
+  form_event_coordinate_y      Int?
+  form_event_return            String?                      @db.VarChar(32)
+  form_event_return_days       Int?
+  form_days_of_retention       Int?
+  form_animation_type          String?                      @db.VarChar(32)
+  form_animation_effect        String?                      @db.VarChar(32)
+  Company_Website_Form_Syncs   Company_Website_Form_Syncs[]
+  Company_Forms                Company_Forms                @relation(fields: [id_company_form], references: [id_company_form], onUpdate: NoAction, map: "FK_Company_Website_Forms_Company_Forms1")
+  Company_Websites             Company_Websites             @relation(fields: [id_company_website], references: [id_company_website], onUpdate: NoAction, map: "FK_Company_Website_Forms_Company_Websites")
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_Forms_JOURNAL {
+  id_row                  Int            @id(map: "PK_Company_Website_Forms_JOURNAL") @default(autoincrement())
+  id_company_website_form Int
+  id_journal              Int
+  dt_ins                  DateTime?      @db.SmallDateTime
+  deltalized              String         @db.VarChar(Max)
+  JOURNAL_Master          JOURNAL_Master @relation(fields: [id_journal], references: [id_journal], onUpdate: NoAction, map: "FK_Company_Website_Forms_JOURNAL_JOURNAL_Master")
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_Localizations {
+  id_company_website_localization Int              @id(map: "PK_Company_Website_Localizations") @default(autoincrement())
+  id_company_website              Int
+  id_localization                 Int
+  is_default                      Boolean
+  activation_tag                  String?          @db.VarChar(64)
+  Company_Websites                Company_Websites @relation(fields: [id_company_website], references: [id_company_website], onUpdate: NoAction, map: "FK_Company_Website_Localizations_Company_Websites")
+  Localizations                   Localizations    @relation(fields: [id_localization], references: [id_localization], onUpdate: NoAction, map: "FK_Company_Website_Localizations_Localizations")
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_Release_Cookies {
+  id_company_website_release_cookie                              Int                      @id(map: "PK_Company_Website_Catalogue_Cookies") @default(autoincrement())
+  id_company_website_release                                     Int
+  id_cookie                                                      Int
+  id_cookie_category                                             Int?
+  id_cookie_group                                                Int?
+  id_cookie_ref                                                  Int?
+  id_company_website_crawl_cookie                                Int?
+  id_transferdata_nation                                         Int?
+  id_transferdata_type                                           Int?
+  cookie_description_linked                                      Boolean?
+  further_information_linked                                     Boolean?
+  cookie_link_linked                                             Boolean?
+  cookie_link_optout_linked                                      Boolean?
+  transferdata_info_linked                                       Boolean?                 @default(false, map: "DF_Company_Website_Release_Cookies_transferdata_info_linked")
+  Company_Website_Releases                                       Company_Website_Releases @relation(fields: [id_company_website_release], references: [id_company_website_release], onUpdate: NoAction, map: "FK_Company_Website_Release_Cookies_Company_Website_Releases")
+  Cookie_Categories                                              Cookie_Categories?       @relation(fields: [id_cookie_category], references: [id_cookie_category], onDelete: NoAction, onUpdate: NoAction, map: "FK_Company_Website_Release_Cookies_Cookie_Categories")
+  Cookies_Company_Website_Release_Cookies_id_cookieToCookies     Cookies                  @relation("Company_Website_Release_Cookies_id_cookieToCookies", fields: [id_cookie], references: [id_cookie], onUpdate: NoAction, map: "FK_Company_Website_Release_Cookies_Cookies")
+  Cookies_Groups                                                 Cookies_Groups?          @relation(fields: [id_cookie_group], references: [id_cookie_group], onDelete: NoAction, onUpdate: NoAction, map: "FK_Company_Website_Release_Cookies_Cookies_Groups")
+  Cookies_Company_Website_Release_Cookies_id_cookie_refToCookies Cookies?                 @relation("Company_Website_Release_Cookies_id_cookie_refToCookies", fields: [id_cookie_ref], references: [id_cookie], onDelete: NoAction, onUpdate: NoAction, map: "FK_Company_Website_Release_Cookies_Cookies1")
+  TransferData_Nations                                           TransferData_Nations?    @relation(fields: [id_transferdata_nation], references: [id_transferdata_nation], onDelete: NoAction, onUpdate: NoAction, map: "FK_Company_Website_Release_Cookies_TransferData_Nations")
+  TransferData_Types                                             TransferData_Types?      @relation(fields: [id_transferdata_type], references: [id_transferdata_type], onDelete: NoAction, onUpdate: NoAction, map: "FK_Company_Website_Release_Cookies_TransferData_Types")
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_Release_Fences {
+  id_company_website_release_fence     Int                                    @id(map: "PK_Company_Website_Release_Fences") @default(autoincrement())
+  id_company_website_release           Int
+  fence_name                           String                                 @db.VarChar(64)
+  fence_description                    String?                                @db.VarChar(1024)
+  fence_type                           String                                 @db.VarChar(16)
+  date_start                           DateTime                               @db.SmallDateTime
+  date_end                             DateTime?                              @db.SmallDateTime
+  scheduled_date_end                   DateTime?                              @db.SmallDateTime
+  Company_Website_Releases             Company_Website_Releases               @relation(fields: [id_company_website_release], references: [id_company_website_release], onUpdate: NoAction, map: "FK_Company_Website_Release_Fences_Company_Website_Releases")
+  Company_Website_Release_Fences_Sniff Company_Website_Release_Fences_Sniff[]
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_Release_Fences_Sniff {
+  id_company_website_release_fence_sniff       Int                                            @id(map: "PK_Company_Website_Release_Fences_Sniff") @default(autoincrement())
+  id_company_website_release_fence             Int
+  company_website_scanner_activated            Boolean
+  client_identity                              String                                         @db.VarChar(64)
+  client_ipaddress                             String                                         @db.VarChar(64)
+  release_version                              String                                         @db.VarChar(64)
+  page_url                                     String                                         @db.VarChar(2048)
+  cookie_sniffed_list                          String                                         @db.VarChar(Max)
+  dt_ins                                       DateTime                                       @db.DateTime
+  Company_Website_Release_Fences               Company_Website_Release_Fences                 @relation(fields: [id_company_website_release_fence], references: [id_company_website_release_fence], onUpdate: NoAction, map: "FK_Company_Website_Release_Fences_Sniff_Company_Website_Release_Fences")
+  Company_Website_Release_Fences_Sniff_Cookies Company_Website_Release_Fences_Sniff_Cookies[]
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_Release_Fences_Sniff_Cookies {
+  id_company_website_release_fence_sniff_cookie Int                                  @id(map: "PK_Company_Website_Release_Fences_Sniff_Cookies") @default(autoincrement())
+  id_company_website_release_fence_sniff        Int
+  cookie_name                                   String                               @db.VarChar(1024)
+  cookie_domain                                 String?                              @db.VarChar(1024)
+  cookie_httponly                               String?                              @db.VarChar(1024)
+  cookie_secure                                 String?                              @db.VarChar(1024)
+  cookie_samesite                               String?                              @db.VarChar(1024)
+  cookie_path                                   String?                              @db.VarChar(1024)
+  coockie_expires                               DateTime?                            @db.DateTime
+  Company_Website_Release_Fences_Sniff          Company_Website_Release_Fences_Sniff @relation(fields: [id_company_website_release_fence_sniff], references: [id_company_website_release_fence_sniff], onUpdate: NoAction, map: "FK_Company_Website_Release_Fences_Sniff_Cookies_Company_Website_Release_Fences_Sniff")
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_Release_GenericUsers {
+  id_company_website_release_genericuser Int                      @id(map: "PK_Company_Website_Release_GenericUsers") @default(autoincrement())
+  id_company_website_release             Int
+  id_user                                Int
+  genericuser_foreground                 Boolean                  @default(false, map: "DF_Company_Website_Release_GenericUsers_genericuser_place_in_home")
+  Company_Website_Releases               Company_Website_Releases @relation(fields: [id_company_website_release], references: [id_company_website_release], onUpdate: NoAction, map: "FK_Company_Website_Release_GenericUsers_Company_Website_Releases")
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_Release_Socials {
+  id_company_website_release_social Int                      @id(map: "PK_Company_Website_Release_Socials") @default(autoincrement())
+  id_company_website_release        Int
+  id_company_website_social         Int?
+  social_url                        String?                  @db.VarChar(2048)
+  social_show                       Boolean
+  Company_Website_Releases          Company_Website_Releases @relation(fields: [id_company_website_release], references: [id_company_website_release], onUpdate: NoAction, map: "FK_Company_Website_Release_Socials_Company_Website_Releases")
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_Release_Socials_JOURNAL {
+  id_row                     Int       @id(map: "PK_Company_Website_Release_Socials_JOURNAL") @default(autoincrement())
+  id_company_website_release Int
+  id_journal                 Int
+  dt_ins                     DateTime? @db.SmallDateTime
+  xmlflow                    String    @db.Xml
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_Release_States {
+  id_company_website_release_status         Int                        @id(map: "PK_Company_Website_Release_States")
+  company_website_release_status_code       String                     @db.VarChar(16)
+  company_website_release_status_name       String                     @db.VarChar(64)
+  company_website_release_status_descrption String?                    @db.VarChar(1024)
+  Company_Website_Releases                  Company_Website_Releases[]
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_Release_StyleOverride {
+  id_company_website_release_styleoverride Int                      @id(map: "PK_Company_Website_Release_StyleOverride") @default(autoincrement())
+  id_company_website_release               Int
+  control_name                             String?                  @db.VarChar(64)
+  property_code                            String?                  @db.VarChar(32)
+  property_name                            String?                  @db.VarChar(64)
+  property_value                           String?                  @db.VarChar(256)
+  property_name_for_client                 String?                  @db.VarChar(64)
+  property_value_for_client                String?                  @db.VarChar(256)
+  Company_Website_Releases                 Company_Website_Releases @relation(fields: [id_company_website_release], references: [id_company_website_release], onUpdate: NoAction, map: "FK_Company_Website_Release_StyleOverride_Company_Website_Releases")
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_Releases {
+  id_company_website_release              Int                                     @id(map: "PK_Company_Website_Catalogues") @default(autoincrement())
+  id_company_website                      Int
+  id_company_website_release_status       Int?
+  id_website_release_style                Int?
+  is_last                                 Boolean?
+  release_name                            String?                                 @db.VarChar(64)
+  release_description                     String?                                 @db.VarChar(256)
+  release_available                       Boolean?
+  release_updated_on                      DateTime?                               @db.Date
+  release_version                         String?                                 @db.VarChar(32)
+  first_access_show_trigger               String?                                 @db.VarChar(32)
+  first_access_show_mode                  String?                                 @db.VarChar(32)
+  first_access_consent_mode               String?                                 @db.VarChar(32)
+  first_access_consent_behavior           String?                                 @db.VarChar(32)
+  next_access_shortcut_mode               String?                                 @db.VarChar(32)
+  next_access_show_mode                   String?                                 @db.VarChar(32)
+  next_access_shortcut_position           String?                                 @db.VarChar(32)
+  client_banner_command_acceptall         Boolean?
+  client_banner_command_denyall           Boolean?
+  client_banner_command_show_policy       Boolean?
+  client_banner_text_new_version_required Boolean?
+  client_banner_text_next_access_required Boolean?
+  client_box_text_new_version_required    Boolean?
+  client_box_text_next_access_required    Boolean?
+  client_box_command_show_policy          Boolean?
+  client_box_command_show_extrainfo       Boolean?
+  client_box_command_show_furtherinfo     Boolean?
+  client_box_show_accepted_policy_version Boolean?
+  client_box_show_accepted_timestamp      Boolean?
+  client_box_legalground_show_info        String?                                 @db.VarChar(32)
+  client_logo                             String?                                 @db.VarChar(32)
+  client_logo_path                        String?                                 @db.VarChar(512)
+  client_logo_file                        String?                                 @db.VarChar(32)
+  client_container_style_css              String?                                 @db.VarChar(2048)
+  client_postsave_reload_page             Boolean?
+  client_postsave_create_cookie           Boolean?
+  tcf_enabled                             Boolean                                 @default(false, map: "DF_Company_Website_Releases_tcf_enabled")
+  tcf_version                             String?                                 @db.VarChar(32)
+  tcf_vendors_list                        String?                                 @db.VarChar(32)
+  google_consent_mode_enabled             Boolean                                 @default(false, map: "DF_Company_Website_Releases_google_consent_mode_enabled")
+  google_tag_id                           String?                                 @db.VarChar(64)
+  cookie_fence_enabled                    Boolean                                 @default(true, map: "DF_Company_Website_Releases_cookie_fence_enabled")
+  chk_info                                String?                                 @db.VarChar(4096)
+  chk_code                                String?                                 @db.VarChar(32)
+  trace                                   String?                                 @db.VarChar(4096)
+  Company_Website_Crawlings               Company_Website_Crawlings[]
+  Company_Website_Release_Cookies         Company_Website_Release_Cookies[]
+  Company_Website_Release_Fences          Company_Website_Release_Fences[]
+  Company_Website_Release_GenericUsers    Company_Website_Release_GenericUsers[]
+  Company_Website_Release_Socials         Company_Website_Release_Socials[]
+  Company_Website_Release_StyleOverride   Company_Website_Release_StyleOverride[]
+  Company_Website_Release_States          Company_Website_Release_States?         @relation(fields: [id_company_website_release_status], references: [id_company_website_release_status], onDelete: NoAction, onUpdate: NoAction, map: "FK_Company_Website_Releases_Company_Website_Release_States")
+  Company_Websites                        Company_Websites                        @relation(fields: [id_company_website], references: [id_company_website], onUpdate: NoAction, map: "FK_Company_Website_Releases_Company_Websites")
+  Company_Website_Releases_JOURNAL        Company_Website_Releases_JOURNAL[]
+  Company_Website_Releases_Localized      Company_Website_Releases_Localized[]
+  Company_Website_Traces                  Company_Website_Traces[]
+
+  @@schema("CookieMan")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model Company_Website_Releases_Google_ACM_Localized {
+  id_company_website_release   Int
+  id_localization              Int
+  localization_code            String  @db.VarChar(8)
+  category_name                String? @db.VarChar(64)
+  category_google_consent_keys String? @db.VarChar(256)
+  category_description         String? @db.VarChar(Max)
+
+  @@ignore
+  @@schema("CookieMan")
+}
+
+model Company_Website_Releases_JOURNAL {
+  id_row                     Int                      @id(map: "PK_Company_Website_Releases_JOURNAL") @default(autoincrement())
+  id_company_website_release Int
+  id_journal                 Int
+  dt_ins                     DateTime?                @db.SmallDateTime
+  deltalized                 String                   @db.VarChar(Max)
+  Company_Website_Releases   Company_Website_Releases @relation(fields: [id_company_website_release], references: [id_company_website_release], onUpdate: NoAction, map: "FK_Company_Website_Releases_JOURNAL_Company_Website_Releases")
+  JOURNAL_Master             JOURNAL_Master           @relation(fields: [id_journal], references: [id_journal], onUpdate: NoAction, map: "FK_Company_Website_Releases_JOURNAL_JOURNAL_Master")
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_Releases_Localized {
+  id_company_website_release               Int
+  id_localization                          Int
+  localization_code                        String                   @db.VarChar(8)
+  client_label_text                        String?                  @db.VarChar(64)
+  client_banner_command_show_policy_text   String?                  @db.VarChar(64)
+  client_box_command_show_policy_text      String?                  @db.VarChar(64)
+  client_box_command_show_extrainfo_text   String?                  @db.VarChar(64)
+  client_box_command_show_furtherinfo_text String?                  @db.VarChar(64)
+  client_box_command_show_tcf_text         String?                  @db.VarChar(64)
+  functionality_optin_text                 String?                  @db.VarChar(64)
+  functionality_optin_description          String?                  @db.VarChar(1024)
+  experience_optin_text                    String?                  @db.VarChar(64)
+  experience_optin_description             String?                  @db.VarChar(1024)
+  measure_optin_text                       String?                  @db.VarChar(64)
+  measure_optin_description                String?                  @db.VarChar(1024)
+  marketing_optin_text                     String?                  @db.VarChar(64)
+  marketing_optin_description              String?                  @db.VarChar(1024)
+  tcf_description                          String?                  @db.VarChar(1024)
+  tcf_targets_consent_text                 String?                  @db.VarChar(64)
+  tcf_targets_consent_placeholder          String?                  @db.VarChar(64)
+  tcf_targets_consent_description          String?                  @db.VarChar(1024)
+  tcf_targets_legint_text                  String?                  @db.VarChar(64)
+  tcf_targets_legint_placeholder           String?                  @db.VarChar(64)
+  tcf_targets_legint_description           String?                  @db.VarChar(1024)
+  tcf_targets_merged_text                  String?                  @db.VarChar(64)
+  tcf_targets_merged_placeholder           String?                  @db.VarChar(64)
+  tcf_targets_merged_description           String?                  @db.VarChar(1024)
+  tcf_vendors_text                         String?                  @db.VarChar(64)
+  tcf_vendors_placeholder                  String?                  @db.VarChar(64)
+  tcf_vendors_description                  String?                  @db.VarChar(1024)
+  tcf_vendors_group_tcf                    String?                  @db.VarChar(128)
+  tcf_vendors_group_google                 String?                  @db.VarChar(128)
+  client_box_genericusers_subtitle         String?                  @db.VarChar(Max)
+  client_box_further_information_subtitle  String?                  @db.VarChar(Max)
+  policy_banner_first_access               String?                  @db.VarChar(Max)
+  policy_banner_new_version                String?                  @db.VarChar(Max)
+  policy_banner_next_access                String?                  @db.VarChar(Max)
+  policy_box_title                         String?                  @db.VarChar(1024)
+  policy_box_tcf_text                      String?                  @db.VarChar(Max)
+  policy_box_first_access                  String?                  @db.VarChar(Max)
+  policy_box_new_version                   String?                  @db.VarChar(Max)
+  policy_box_next_access                   String?                  @db.VarChar(Max)
+  box_policy_privacy                       String?                  @db.VarChar(Max)
+  Company_Website_Releases                 Company_Website_Releases @relation(fields: [id_company_website_release], references: [id_company_website_release], onUpdate: NoAction, map: "FK_Company_Website_Releases_Localized_Company_Website_Releases")
+  Localizations                            Localizations            @relation(fields: [id_localization], references: [id_localization], onUpdate: NoAction, map: "FK_Company_Website_Releases_Localized_Localizations")
+
+  @@id([id_company_website_release, id_localization], map: "PK_Company_Website_Releases_Localized")
+  @@schema("CookieMan")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model Company_Website_Releases_Localized_JOURNAL {
+  id_row                     Int       @default(autoincrement())
+  id_company_website_release Int
+  id_journal                 Int
+  dt_ins                     DateTime? @db.SmallDateTime
+  deltalized                 String    @db.VarChar(Max)
+
+  @@ignore
+  @@schema("CookieMan")
+}
+
+model Company_Website_Socials {
+  id_company_website_social Int  @id(map: "PK_Company_Website_Socials") @default(autoincrement())
+  id_company_website        Int
+  id_company_social         Int
+  website_social_order      Int?
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_States {
+  id_company_website_status         Int     @id(map: "PK_Company_Website_States")
+  company_website_status_code       String  @db.VarChar(16)
+  company_website_status_name       String  @db.VarChar(64)
+  company_website_status_descrption String? @db.VarChar(1024)
+
+  @@schema("CookieMan")
+}
+
+model Company_Website_Traces {
+  id_company_website_trace   Int                      @id(map: "PK_Company_Website_Traces") @default(autoincrement())
+  id_company_website         Int
+  id_company_website_release Int
+  id_trace_identity          Int
+  trace_ip                   String                   @db.VarChar(64)
+  trace_dt_ins               DateTime                 @default(now(), map: "DF_Company_Website_Traces_trace_dt_ins") @db.DateTime
+  trace_consent_info         String                   @db.VarChar(1024)
+  trace_cookie_value         String                   @db.VarChar(Max)
+  trace                      String                   @db.VarChar(Max)
+  Company_Website_Releases   Company_Website_Releases @relation(fields: [id_company_website_release], references: [id_company_website_release], onUpdate: NoAction, map: "FK_Company_Website_Traces_Company_Website_Releases")
+  Company_Websites           Company_Websites         @relation(fields: [id_company_website], references: [id_company_website], onUpdate: NoAction, map: "FK_Company_Website_Traces_Company_Websites")
+  Trace_Identities           Trace_Identities         @relation(fields: [id_trace_identity], references: [id_trace_identity], onUpdate: NoAction, map: "FK_Company_Website_Traces_Trace_Identities")
+
+  @@schema("CookieMan")
+}
+
+model Company_Websites {
+  id_company_website                 Int                             @id(map: "PK_Company_Websites") @default(autoincrement())
+  id_company_website_status          Int?
+  id_company                         Int
+  company_website_name               String                          @db.VarChar(64)
+  company_website_description        String?                         @db.VarChar(1024)
+  company_website_address            String                          @db.VarChar(128)
+  company_website_token              String                          @db.VarChar(32)
+  company_website_monitor_active     Boolean
+  company_website_jquery_version     String?                         @db.VarChar(64)
+  company_website_jquery_ui_version  String?                         @db.VarChar(64)
+  company_website_scanner_activated  Boolean?
+  company_website_sniffer_activated  Boolean?
+  company_website_script_version     String                          @default("1", map: "DF_Company_Websites_company_website_script_version") @db.VarChar(16)
+  company_website_statistics_enabled Boolean                         @default(false, map: "DF_Company_Websites_company_website_statistics_enabled")
+  company_website_installation_notes String?                         @db.VarChar(Max)
+  Company_Website_Crawlings          Company_Website_Crawlings[]
+  Company_Website_Form_Socials       Company_Website_Form_Socials[]
+  Company_Website_Forms              Company_Website_Forms[]
+  Company_Website_Localizations      Company_Website_Localizations[]
+  Company_Website_Releases           Company_Website_Releases[]
+  Company_Website_Traces             Company_Website_Traces[]
+  Companies                          Companies                       @relation(fields: [id_company], references: [id_company], onUpdate: NoAction, map: "FK_Company_Websites_Companies")
+  Company_Websites_JOURNAL           Company_Websites_JOURNAL[]
+  Cookie_Categories                  Cookie_Categories[]
+  Cookies_Groups                     Cookies_Groups[]
+
+  @@schema("CookieMan")
+}
+
+model Company_Websites_JOURNAL {
+  id_row             Int              @id(map: "PK_Company_Websites_JOURNAL") @default(autoincrement())
+  id_company_website Int
+  id_journal         Int
+  dt_ins             DateTime?        @db.SmallDateTime
+  deltalized         String           @db.VarChar(Max)
+  Company_Websites   Company_Websites @relation(fields: [id_company_website], references: [id_company_website], onUpdate: NoAction, map: "FK_Company_Websites_JOURNAL_Company_Websites")
+  JOURNAL_Master     JOURNAL_Master   @relation(fields: [id_journal], references: [id_journal], onUpdate: NoAction, map: "FK_Company_Websites_JOURNAL_JOURNAL_Master")
+
+  @@schema("CookieMan")
+}
+
+model Cookie_Categories {
+  id_cookie_category                        Int                               @id(map: "PK_Cookie_Categories") @default(autoincrement())
+  id_company_website                        Int?
+  cookie_category_code                      String?                           @db.VarChar(64)
+  cookie_category_icon                      String?                           @db.VarChar(64)
+  cookie_category_order                     Int?
+  cookie_category_requires_consent_behavior Boolean                           @default(false, map: "DF_Cookie_Categories_cookie_category_consenst")
+  id_cookie_category_source                 Int?
+  available                                 Boolean
+  Company_Website_Release_Cookies           Company_Website_Release_Cookies[]
+  Company_Websites                          Company_Websites?                 @relation(fields: [id_company_website], references: [id_company_website], onDelete: NoAction, onUpdate: NoAction, map: "FK_Cookie_Categories_Company_Websites")
+  Cookie_Categories_Localized               Cookie_Categories_Localized[]
+  Cookies                                   Cookies[]
+
+  @@schema("CookieMan")
+}
+
+model Cookie_Categories_Localized {
+  id_cookie_category                Int
+  id_localization                   Int
+  localization_code                 String            @db.VarChar(8)
+  cookie_category_name              String?           @db.VarChar(64)
+  cookie_category_brief_description String?           @db.VarChar(1024)
+  cookie_category_description       String?           @db.VarChar(4096)
+  Cookie_Categories                 Cookie_Categories @relation(fields: [id_cookie_category], references: [id_cookie_category], onUpdate: NoAction, map: "FK_Cookie_Categories_Localized_Cookie_Categories")
+  Localizations                     Localizations     @relation(fields: [id_localization], references: [id_localization], onUpdate: NoAction, map: "FK_Cookie_Categories_Localized_Localizations")
+
+  @@id([id_cookie_category, id_localization], map: "PK_Cookie_Categories_Localized")
+  @@schema("CookieMan")
+}
+
+model Cookie_LegalGrounds {
+  id_cookie_legalground                        Int                             @id(map: "PK_Cookie_LegalGrounds") @default(autoincrement())
+  cookie_legalground_code                      String?                         @db.VarChar(64)
+  cookie_legalground_requires_consent_behavior Boolean
+  available                                    Boolean
+  Cookie_LegalGrounds_Localized                Cookie_LegalGrounds_Localized[]
+  Cookies                                      Cookies[]
+
+  @@schema("CookieMan")
+}
+
+model Cookie_LegalGrounds_Localized {
+  id_cookie_legalground          Int
+  id_localization                Int
+  localization_code              String              @db.VarChar(8)
+  cookie_legalground_name        String?             @db.VarChar(64)
+  cookie_legalground_description String?             @db.VarChar(1024)
+  Cookie_LegalGrounds            Cookie_LegalGrounds @relation(fields: [id_cookie_legalground], references: [id_cookie_legalground], onUpdate: NoAction, map: "FK_Cookie_LegalGrounds_Localized_Cookie_LegalGrounds")
+  Localizations                  Localizations       @relation(fields: [id_localization], references: [id_localization], onUpdate: NoAction, map: "FK_Cookie_LegalGrounds_Localized_Localizations")
+
+  @@id([id_cookie_legalground, id_localization], map: "PK_Cookie_LegalGrounds_Localized")
+  @@schema("CookieMan")
+}
+
+model Cookie_Types {
+  id_cookie_type          Int       @id(map: "PK_Cookie_Types")
+  cookie_type_code        String?   @db.VarChar(64)
+  cookie_type_name        String?   @db.VarChar(64)
+  cookie_type_description String?   @db.VarChar(1024)
+  available               Boolean
+  Cookies                 Cookies[]
+
+  @@schema("CookieMan")
+}
+
+model Cookies {
+  id_cookie                                                                              Int                               @id(map: "PK_Cookies") @default(autoincrement())
+  id_company                                                                             Int?
+  id_cookie_category                                                                     Int?
+  id_cookie_group                                                                        Int?
+  id_cookie_type                                                                         Int?
+  id_cookie_legalground                                                                  Int?
+  id_further_information                                                                 Int?
+  id_transferdata_nation                                                                 Int?
+  cookie_name                                                                            String                            @db.VarChar(64)
+  cookie_domain                                                                          String?                           @db.VarChar(64)
+  cookie_httponly                                                                        Boolean?                          @default(false, map: "DF_Cookies_cookie_http_only")
+  cookie_secure                                                                          Boolean?                          @default(false, map: "DF_Cookies_cookie_secure")
+  cookie_samesite                                                                        String?                           @db.VarChar(64)
+  cookie_path                                                                            String?                           @db.VarChar(64)
+  cookie_selector_value                                                                  String?                           @db.VarChar(64)
+  available                                                                              Boolean                           @default(false, map: "DF_Cookies_cookie_enabled")
+  Company_Website_Release_Cookies_Company_Website_Release_Cookies_id_cookieToCookies     Company_Website_Release_Cookies[] @relation("Company_Website_Release_Cookies_id_cookieToCookies")
+  Company_Website_Release_Cookies_Company_Website_Release_Cookies_id_cookie_refToCookies Company_Website_Release_Cookies[] @relation("Company_Website_Release_Cookies_id_cookie_refToCookies")
+  Companies                                                                              Companies?                        @relation(fields: [id_company], references: [id_company], onDelete: NoAction, onUpdate: NoAction, map: "FK_Cookies_Companies")
+  Cookie_Categories                                                                      Cookie_Categories?                @relation(fields: [id_cookie_category], references: [id_cookie_category], onDelete: NoAction, onUpdate: NoAction, map: "FK_Cookies_Cookie_Categories")
+  Cookie_LegalGrounds                                                                    Cookie_LegalGrounds?              @relation(fields: [id_cookie_legalground], references: [id_cookie_legalground], onDelete: NoAction, onUpdate: NoAction, map: "FK_Cookies_Cookie_LegalGrounds")
+  Cookie_Types                                                                           Cookie_Types?                     @relation(fields: [id_cookie_type], references: [id_cookie_type], onDelete: NoAction, onUpdate: NoAction, map: "FK_Cookies_Cookie_Types")
+  Cookies_Groups                                                                         Cookies_Groups?                   @relation(fields: [id_cookie_group], references: [id_cookie_group], onDelete: NoAction, onUpdate: NoAction, map: "FK_Cookies_Cookies_Groups")
+  FurtherInformations                                                                    FurtherInformations?              @relation(fields: [id_further_information], references: [id_further_information], onDelete: NoAction, onUpdate: NoAction, map: "FK_Cookies_FurtherInformations")
+  TransferData_Nations                                                                   TransferData_Nations?             @relation(fields: [id_transferdata_nation], references: [id_transferdata_nation], onDelete: NoAction, onUpdate: NoAction, map: "FK_Cookies_TransferData_Nations")
+  Cookies_Localized                                                                      Cookies_Localized[]
+
+  @@schema("CookieMan")
+}
+
+model Cookies_Groups {
+  id_cookie_group                 Int                               @id(map: "PK_Cookies_Groups_1") @default(autoincrement())
+  id_company_website              Int?
+  cookie_group_order              Int?
+  id_cookie_group_source          Int?
+  available                       Boolean                           @default(false, map: "DF_Cookies_Groups_available")
+  Company_Website_Release_Cookies Company_Website_Release_Cookies[]
+  Cookies                         Cookies[]
+  Company_Websites                Company_Websites?                 @relation(fields: [id_company_website], references: [id_company_website], onDelete: NoAction, onUpdate: NoAction, map: "FK_Cookies_Groups_Company_Websites")
+  Cookies_Groups_Localized        Cookies_Groups_Localized[]
+
+  @@schema("CookieMan")
+}
+
+model Cookies_Groups_Localized {
+  id_cookie_group   Int
+  id_localization   Int
+  localization_code String         @db.VarChar(8)
+  cookie_group_name String?        @db.VarChar(256)
+  Cookies_Groups    Cookies_Groups @relation(fields: [id_cookie_group], references: [id_cookie_group], onUpdate: NoAction, map: "FK_Cookies_Groups_Localized_Cookies_Groups")
+  Localizations     Localizations  @relation(fields: [id_localization], references: [id_localization], onUpdate: NoAction, map: "FK_Cookies_Groups_Localized_Localizations")
+
+  @@id([id_cookie_group, id_localization], map: "PK_Cookies_Groups")
+  @@schema("CookieMan")
+}
+
+model Cookies_Localized {
+  id_cookie                     Int
+  id_localization               Int
+  localization_code             String        @db.VarChar(8)
+  cookie_duration               String?       @db.VarChar(64)
+  cookie_link                   String?       @db.VarChar(256)
+  cookie_link_optout            String?       @db.VarChar(256)
+  transferdata_type_title       String?       @db.VarChar(512)
+  transferdata_type_description String?       @db.VarChar(Max)
+  cookie_description            String?       @db.VarChar(Max)
+  Cookies                       Cookies       @relation(fields: [id_cookie], references: [id_cookie], onUpdate: NoAction, map: "FK_Cookies_Localized_Cookies")
+  Localizations                 Localizations @relation(fields: [id_localization], references: [id_localization], onUpdate: NoAction, map: "FK_Cookies_Localized_Localizations")
+
+  @@id([id_cookie, id_localization], map: "PK_Cookies_Localized")
+  @@schema("CookieMan")
+}
+
+model FurtherInformations {
+  id_further_information        Int                             @id(map: "PK_FurtherInformations") @default(autoincrement())
+  id_company                    Int?
+  further_information_type      String?                         @db.VarChar(32)
+  further_information_code      String?                         @db.VarChar(32)
+  further_information_name      String?                         @db.VarChar(1024)
+  available                     Boolean
+  Cookies                       Cookies[]
+  FurtherInformations_Localized FurtherInformations_Localized[]
+
+  @@schema("CookieMan")
+}
+
+model FurtherInformations_Localized {
+  id_further_information          Int
+  id_localization                 Int
+  localization_code               String              @db.VarChar(8)
+  further_information_link        String?             @db.VarChar(256)
+  further_information_title       String?             @db.VarChar(256)
+  further_information_description String?             @db.VarChar(Max)
+  FurtherInformations             FurtherInformations @relation(fields: [id_further_information], references: [id_further_information], onUpdate: NoAction, map: "FK_FurtherInformations_Localized_FurtherInformations")
+
+  @@id([id_further_information, id_localization], map: "PK_FurtherInformations_Localized")
+  @@schema("CookieMan")
+}
+
+model Google_Vendors {
+  vendor_google_id  Int     @id(map: "PK_Google_Vendors")
+  vendor_name       String? @db.VarChar(1024)
+  vendor_policy_url String? @db.VarChar(Max)
+  vendor_domains    String? @db.VarChar(Max)
+
+  @@schema("CookieMan")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model IconsClass {
+  id_icon_class Int     @default(autoincrement())
+  css_class     String? @db.VarChar(32)
+  icon_order    Int?
+  tags          String? @db.VarChar(256)
+
+  @@ignore
+  @@schema("CookieMan")
+}
+
+model JOURNAL_Master {
+  id_journal                         Int                                  @id(map: "PK_JOURNAL_Master") @default(autoincrement())
+  id_user                            Int
+  dt_ins                             DateTime                             @default(now(), map: "DF_JOURNAL_Master_dt_ins") @db.SmallDateTime
+  fact_schema                        String?                              @db.VarChar(64)
+  fact_code                          String                               @db.VarChar(32)
+  fact_subcode                       String                               @db.VarChar(32)
+  fact_action                        String                               @db.VarChar(32)
+  fact_id                            Int?
+  fact_subcode_id                    Int?
+  fact_date                          DateTime                             @db.SmallDateTime
+  fact_description                   String                               @db.VarChar(1024)
+  fact_flag                          String?                              @db.VarChar(32)
+  fact_link                          String?                              @db.VarChar(64)
+  fact_trace                         String?                              @db.VarChar(Max)
+  deltalized                         String?                              @db.VarChar(Max)
+  Addresses_JOURNAL                  Addresses_JOURNAL[]
+  Companies_JOURNAL                  Companies_JOURNAL[]
+  Company_Departments_JOURNAL        Company_Departments_JOURNAL[]
+  Company_Forms_JOURNAL              Company_Forms_JOURNAL[]
+  Company_Website_Form_Syncs_JOURNAL Company_Website_Form_Syncs_JOURNAL[]
+  Company_Website_Forms_JOURNAL      Company_Website_Forms_JOURNAL[]
+  Company_Website_Releases_JOURNAL   Company_Website_Releases_JOURNAL[]
+  Company_Websites_JOURNAL           Company_Websites_JOURNAL[]
+  Users                              Users                                @relation(fields: [id_user], references: [id_user], onUpdate: NoAction, map: "FK_JOURNAL_Master_Users")
+  Profiles_JOURNAL                   Profiles_JOURNAL[]
+  Users_JOURNAL                      Users_JOURNAL[]
+
+  @@schema("prj")
+}
+
+model JOURNAL_NotificationTrick_User {
+  id_trick_user              Int                        @id(map: "PK_JOURNAL_NotificationTrick_User") @default(autoincrement())
+  id_trick                   Int
+  id_user                    Int
+  trick_ack_date             DateTime                   @db.SmallDateTime
+  JOURNAL_NotificationTricks JOURNAL_NotificationTricks @relation(fields: [id_trick], references: [id_trick], onUpdate: NoAction, map: "FK_JOURNAL_NotificationTrick_User_JOURNAL_NotificationTricks")
+  Users                      Users                      @relation(fields: [id_user], references: [id_user], onUpdate: NoAction, map: "FK_JOURNAL_NotificationTrick_User_Users")
+
+  @@schema("prj")
+}
+
+model JOURNAL_NotificationTricks {
+  id_trick                       Int                              @id(map: "PK_JOURNAL_NotificationTricks") @default(autoincrement())
+  dt_ins                         DateTime                         @db.SmallDateTime
+  trick_page_key                 String                           @db.VarChar(128)
+  notification_type              String?                          @db.VarChar(32)
+  notification_img               String?                          @db.VarChar(256)
+  notification_size              String?                          @db.VarChar(32)
+  event_Click                    String?                          @db.VarChar(128)
+  event_MouseEnter               String?                          @db.VarChar(128)
+  event_MouseLeave               String?                          @db.VarChar(128)
+  trick_group                    String                           @db.VarChar(32)
+  trick_code                     String                           @db.VarChar(32)
+  trick_action                   String                           @db.VarChar(2048)
+  trick_id                       Int?
+  trick_activation_date          DateTime?                        @db.SmallDateTime
+  trick_title                    String?                          @db.VarChar(64)
+  trick_msg                      String                           @db.VarChar(1024)
+  trick_order                    Int?
+  trick_require_help             Boolean
+  trick_permissions              String?                          @db.VarChar(2048)
+  trick_link                     String?                          @db.VarChar(64)
+  JOURNAL_NotificationTrick_User JOURNAL_NotificationTrick_User[]
+
+  @@schema("prj")
+}
+
+model Localizations {
+  id_localization                    Int                                  @id(map: "PK_Localizations") @default(autoincrement())
+  localization_code                  String                               @db.VarChar(16)
+  localization_title                 String                               @db.VarChar(64)
+  is_default                         Boolean
+  Company_Localizations              Company_Localizations[]
+  Company_Website_Localizations      Company_Website_Localizations[]
+  Company_Website_Releases_Localized Company_Website_Releases_Localized[]
+  Cookie_Categories_Localized        Cookie_Categories_Localized[]
+  Cookie_LegalGrounds_Localized      Cookie_LegalGrounds_Localized[]
+  Cookies_Groups_Localized           Cookies_Groups_Localized[]
+  Cookies_Localized                  Cookies_Localized[]
+  Resources                          Resources[]
+  Tcf22_Data_Categories              Tcf22_Data_Categories[]
+  Tcf22_Features_Localized           Tcf22_Features_Localized[]
+  Tcf22_Purposes_Localized           Tcf22_Purposes_Localized[]
+  Tcf22_Special_Features_Localized   Tcf22_Special_Features_Localized[]
+  Tcf22_Special_Purposes_Localized   Tcf22_Special_Purposes_Localized[]
+  TransferData_Types_Localized       TransferData_Types_Localized[]
+
+  @@schema("CookieMan")
+}
+
+model Municipalities {
+  id_municipality    Int         @id(map: "PK_Municipalities") @default(autoincrement())
+  id_province        Int
+  municipality_code  String?     @db.VarChar(16)
+  municipality_name  String?     @db.VarChar(256)
+  zip_code           String?     @db.VarChar(16)
+  land_register_code String?     @db.VarChar(16)
+  available          Boolean
+  Addresses          Addresses[]
+  Provinces          Provinces   @relation(fields: [id_province], references: [id_province], onUpdate: NoAction, map: "FK_Municipalities_Provinces")
+
+  @@schema("prj")
+}
+
+model Nations {
+  id_nation    Int         @id(map: "PK_Nations") @default(autoincrement())
+  nation_code  String?     @db.VarChar(32)
+  nation_name  String?     @db.VarChar(64)
+  free_address Boolean?
+  available    Boolean?
+  Addresses    Addresses[]
+
+  @@schema("prj")
+}
+
+model Permissions {
+  id_permission        Int                   @id(map: "PK_Permissions")
+  permission_extension String?               @db.VarChar(32)
+  permission_KEY       String                @db.VarChar(32)
+  permission_SubKey    String?               @db.VarChar(32)
+  permission_group     String?               @db.VarChar(64)
+  permission_section   String?               @db.VarChar(64)
+  action               String?               @db.VarChar(64)
+  description          String?               @db.VarChar(256)
+  Profile_Permissions  Profile_Permissions[]
+
+  @@schema("prj")
+}
+
+model Policy {
+  id_policy   Int     @id(map: "PK_Policy") @default(autoincrement())
+  policy_type String? @db.VarChar(16)
+  link        String? @db.VarChar(256)
+  description String? @db.NChar(10)
+
+  @@schema("CookieMan")
+}
+
+model Profile_Permissions {
+  id_row        Int         @id(map: "PK_Profile_Permissions") @default(autoincrement())
+  id_profile    Int
+  id_permission Int
+  Permissions   Permissions @relation(fields: [id_permission], references: [id_permission], onUpdate: NoAction, map: "FK_Profile_Permissions_Permissions")
+  Profiles      Profiles    @relation(fields: [id_profile], references: [id_profile], onUpdate: NoAction, map: "FK_Profile_Permissions_Profiles")
+
+  @@schema("prj")
+}
+
+model Profiles {
+  id_profile          Int                   @id(map: "PK_Profiles") @default(autoincrement())
+  profile_code        String?               @db.VarChar(32)
+  profile_name        String                @db.VarChar(32)
+  profile_extension   String?               @db.VarChar(32)
+  profile_description String?               @db.VarChar(256)
+  Profile_Permissions Profile_Permissions[]
+  Profiles_JOURNAL    Profiles_JOURNAL[]
+  User_Profiles       User_Profiles[]
+
+  @@schema("prj")
+}
+
+model Profiles_JOURNAL {
+  id_row         Int            @id(map: "PK_Profiles_JOURNAL") @default(autoincrement())
+  id_profile     Int
+  id_journal     Int
+  deltalized     String         @db.VarChar(Max)
+  JOURNAL_Master JOURNAL_Master @relation(fields: [id_journal], references: [id_journal], onUpdate: NoAction, map: "FK_Profiles_JOURNAL_JOURNAL_Master")
+  Profiles       Profiles       @relation(fields: [id_profile], references: [id_profile], onUpdate: NoAction, map: "FK_Profiles_JOURNAL_Profiles")
+
+  @@schema("prj")
+}
+
+model Provinces {
+  id_province    Int              @id(map: "PK_Provinces") @default(autoincrement())
+  id_region      Int
+  province_code  String?          @db.VarChar(16)
+  province_name  String?          @db.VarChar(64)
+  available      Boolean
+  Municipalities Municipalities[]
+  Regions        Regions          @relation(fields: [id_region], references: [id_region], onUpdate: NoAction, map: "FK_Provinces_Regions")
+
+  @@schema("prj")
+}
+
+model PUZZLE_Traces {
+  id_row     Int      @id(map: "PK_PUZZLE_Traces") @default(autoincrement())
+  code_value String?  @db.VarChar(64)
+  sub_value  String?  @db.VarChar(64)
+  id_value   String?  @db.VarChar(256)
+  trace      String?  @db.VarChar(Max)
+  dt_ins     DateTime @db.SmallDateTime
+
+  @@schema("prj")
+}
+
+model Regions {
+  id_region         Int         @id(map: "PK_Regions") @default(autoincrement())
+  region_code       String?     @db.VarChar(16)
+  region_name       String?     @db.VarChar(64)
+  region_allocation String?     @db.VarChar(256)
+  available         Boolean
+  Provinces         Provinces[]
+
+  @@schema("prj")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model CookieMan_Resources {
+  id_resources                 Int    @default(autoincrement())
+  id_company_website_catalogue Int
+  id_localization              Int
+  resource_code                String @db.VarChar(16)
+  resource_value               String @db.VarChar(16)
+  resource_value_text          String @db.VarChar(16)
+
+  @@map("Resources")
+  @@ignore
+  @@schema("CookieMan")
+}
+
+model Socials {
+  id_social          Int               @id(map: "PK_Socials") @default(autoincrement())
+  social_type_code   String?           @db.VarChar(32)
+  social_name        String?           @db.VarChar(64)
+  social_filename    String?           @db.VarChar(64)
+  social_description String?           @db.VarChar(256)
+  Company_Socials    Company_Socials[]
+
+  @@schema("CookieMan")
+}
+
+model Tcf22_Data_Categories {
+  data_category_tcf_id            Int            @id(map: "PK_Tcf22_Data_Categories_1")
+  id_localization                 Int?
+  data_category_localization_code String?        @db.VarChar(8)
+  data_category_name              String?        @db.VarChar(1024)
+  data_category_description       String?        @db.VarChar(4096)
+  Localizations                   Localizations? @relation(fields: [id_localization], references: [id_localization], onDelete: NoAction, onUpdate: NoAction, map: "FK_Tcf22_Data_Categories_Localizations")
+
+  @@schema("CookieMan")
+}
+
+model Tcf22_Features {
+  feature_tcf_id           Int                      @id(map: "PK_Tcf22_Features")
+  feature_consent          Boolean?
+  feature_legint           Boolean?
+  Tcf22_Features_Localized Tcf22_Features_Localized @relation(fields: [feature_tcf_id], references: [feature_tcf_id], onUpdate: NoAction, map: "FK_Tcf22_Features_Tcf22_Features_Localized")
+
+  @@schema("CookieMan")
+}
+
+model Tcf22_Features_Localized {
+  feature_tcf_id            Int             @id(map: "PK_Tcf22_Features_1")
+  id_localization           Int?
+  feature_localization_code String?         @db.VarChar(8)
+  feature_name              String?         @db.VarChar(1024)
+  feature_description       String?         @db.VarChar(4096)
+  feature_illustrations     String?         @db.VarChar(Max)
+  Tcf22_Features            Tcf22_Features?
+  Localizations             Localizations?  @relation(fields: [id_localization], references: [id_localization], onDelete: NoAction, onUpdate: NoAction, map: "FK_Tcf22_Features_Localizations")
+
+  @@schema("CookieMan")
+}
+
+model Tcf22_Purposes {
+  purpose_tcf_id           Int                      @id(map: "PK_Tcf22_Purposes")
+  purpose_consent          Boolean?
+  purpose_legint           Boolean?
+  Tcf22_Purposes_Localized Tcf22_Purposes_Localized @relation(fields: [purpose_tcf_id], references: [purpose_tcf_id], onUpdate: NoAction, map: "FK_Tcf22_Purposes_Tcf22_Purposes_Localized")
+
+  @@schema("CookieMan")
+}
+
+model Tcf22_Purposes_Localized {
+  purpose_tcf_id            Int             @id(map: "PK_Tcf22_Purposes_1")
+  id_localization           Int?
+  purpose_localization_code String?         @db.VarChar(8)
+  purpose_name              String?         @db.VarChar(1024)
+  purpose_description       String?         @db.VarChar(4096)
+  purpose_illustrations     String?         @db.VarChar(Max)
+  Tcf22_Purposes            Tcf22_Purposes?
+  Localizations             Localizations?  @relation(fields: [id_localization], references: [id_localization], onDelete: NoAction, onUpdate: NoAction, map: "FK_Tcf22_Purposes_Localizations")
+
+  @@schema("CookieMan")
+}
+
+model Tcf22_Special_Features {
+  special_feature_tcf_id           Int                              @id(map: "PK_Tcf22_Special_Features")
+  special_feature_consent          Boolean?
+  special_feature_legint           Boolean?
+  Tcf22_Special_Features_Localized Tcf22_Special_Features_Localized @relation(fields: [special_feature_tcf_id], references: [special_feature_tcf_id], onUpdate: NoAction, map: "FK_Tcf22_Special_Features_Tcf22_Special_Features_Localized")
+
+  @@schema("CookieMan")
+}
+
+model Tcf22_Special_Features_Localized {
+  special_feature_tcf_id            Int                     @id(map: "PK_Tcf22_Special_Features_1")
+  id_localization                   Int?
+  special_feature_localization_code String?                 @db.VarChar(8)
+  special_feature_name              String?                 @db.VarChar(1024)
+  special_feature_description       String?                 @db.VarChar(4096)
+  special_feature_illustrations     String?                 @db.VarChar(Max)
+  Tcf22_Special_Features            Tcf22_Special_Features?
+  Localizations                     Localizations?          @relation(fields: [id_localization], references: [id_localization], onDelete: NoAction, onUpdate: NoAction, map: "FK_Tcf22_Special_Features_Localizations")
+
+  @@schema("CookieMan")
+}
+
+model Tcf22_Special_Purposes {
+  special_purpose_tcf_id           Int                              @id(map: "PK_Tcf22_Special_Purposes")
+  special_purpose_consent          Boolean?
+  special_purpose_legint           Boolean?
+  Tcf22_Special_Purposes_Localized Tcf22_Special_Purposes_Localized @relation(fields: [special_purpose_tcf_id], references: [special_purpose_tcf_id], onUpdate: NoAction, map: "FK_Tcf22_Special_Purposes_Tcf22_Special_Purposes_Localized")
+
+  @@schema("CookieMan")
+}
+
+model Tcf22_Special_Purposes_Localized {
+  special_purpose_tcf_id            Int                     @id(map: "PK_Tcf22_Special_Purposes_1")
+  id_localization                   Int?
+  special_purpose_localization_code String?                 @db.VarChar(8)
+  special_purpose_name              String?                 @db.VarChar(1024)
+  special_purpose_description       String?                 @db.VarChar(4096)
+  special_purpose_illustrations     String?                 @db.VarChar(Max)
+  Tcf22_Special_Purposes            Tcf22_Special_Purposes?
+  Localizations                     Localizations?          @relation(fields: [id_localization], references: [id_localization], onDelete: NoAction, onUpdate: NoAction, map: "FK_Tcf22_Special_Purposes_Localizations")
+
+  @@schema("CookieMan")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model TemplateForEntity {
+  int_null             Int?
+  int_not_null         Int
+  varchar_null         String?   @db.VarChar(32)
+  varchar_not_null     String    @db.VarChar(32)
+  bit_null             Boolean?
+  bit_not_null         Boolean
+  datetime_null        DateTime? @db.DateTime
+  datetime_not_null    DateTime  @db.DateTime
+  decimal18_4_null     Decimal?  @db.Decimal(18, 4)
+  decimal18_4_not_null Decimal   @db.Decimal(18, 4)
+  varbinary_not_null   Bytes
+  varbinary_null       Bytes?
+
+  @@ignore
+  @@schema("prj")
+}
+
+model Test {
+  id_test Int     @id(map: "PK_Test") @default(autoincrement())
+  test    String? @db.VarChar(512)
+
+  @@schema("CookieMan")
+}
+
+model Trace_Identities {
+  id_trace_identity              Int                              @id(map: "PK_Trace_Identities") @default(autoincrement())
+  identity_date_creation         DateTime                         @db.DateTime
+  identity_last_activity         DateTime                         @db.DateTime
+  identity_guid                  String?                          @db.VarChar(64)
+  Company_Website_Form_SavedData Company_Website_Form_SavedData[]
+  Company_Website_Traces         Company_Website_Traces[]
+
+  @@schema("CookieMan")
+}
+
+model TransferData_Nations {
+  id_transferdata_nation          Int                               @id(map: "PK_TransferData_Nations") @default(autoincrement())
+  nation_code                     String?                           @db.VarChar(16)
+  nation_image_flag               String?                           @db.VarChar(64)
+  nation_name_IT                  String?                           @db.VarChar(64)
+  nation_name_EN                  String?                           @db.VarChar(64)
+  id_transferdata_type            Int?
+  Company_Website_Release_Cookies Company_Website_Release_Cookies[]
+  Cookies                         Cookies[]
+  TransferData_Types              TransferData_Types?               @relation(fields: [id_transferdata_type], references: [id_transferdata_type], onDelete: NoAction, onUpdate: NoAction, map: "FK_TransferData_Nations_TransferData_Types")
+
+  @@schema("CookieMan")
+}
+
+model TransferData_Types {
+  id_transferdata_type            Int                               @id(map: "PK_TransferData_Types") @default(autoincrement())
+  transferdata_type_code          String?                           @db.VarChar(16)
+  is_agreement                    Boolean
+  Company_Website_Release_Cookies Company_Website_Release_Cookies[]
+  TransferData_Nations            TransferData_Nations[]
+  TransferData_Types_Localized    TransferData_Types_Localized[]
+
+  @@schema("CookieMan")
+}
+
+model TransferData_Types_Localized {
+  id_transferdata_type          Int
+  id_localization               Int
+  localization_code             String             @db.VarChar(8)
+  transferdata_type_title       String?            @db.VarChar(512)
+  transferdata_type_description String?            @db.VarChar(Max)
+  Localizations                 Localizations      @relation(fields: [id_localization], references: [id_localization], onUpdate: NoAction, map: "FK_TransferData_Types_Localized_Localizations")
+  TransferData_Types            TransferData_Types @relation(fields: [id_transferdata_type], references: [id_transferdata_type], onUpdate: NoAction, map: "FK_TransferData_Types_Localized_TransferData_Types")
+
+  @@id([id_transferdata_type, id_localization], map: "PK_TransferData_Types_Localized")
+  @@schema("CookieMan")
+}
+
+model User_Logins {
+  id_user_login        Int       @id(map: "PK_User_Logins") @default(autoincrement())
+  id_user              Int
+  login_type           String    @db.VarChar(32)
+  user_name            String    @db.VarChar(64)
+  password             String    @db.VarChar(512)
+  first_login          DateTime? @db.SmallDateTime
+  last_login           DateTime? @db.SmallDateTime
+  last_change_password DateTime? @db.SmallDateTime
+  enabled              Boolean   @default(true, map: "DF_User_Logins_enabled")
+  validity_begin       DateTime? @db.SmallDateTime
+  validity_end         DateTime? @db.SmallDateTime
+  Users                Users     @relation(fields: [id_user], references: [id_user], onUpdate: NoAction, map: "FK_User_Logins_Users")
+
+  @@schema("prj")
+}
+
+model User_Profiles {
+  id_row     Int      @id(map: "PK_User_Profiles") @default(autoincrement())
+  id_user    Int
+  id_profile Int
+  Profiles   Profiles @relation(fields: [id_profile], references: [id_profile], onUpdate: NoAction, map: "FK_User_Profiles_Profiles")
+  Users      Users    @relation(fields: [id_user], references: [id_user], onUpdate: NoAction, map: "FK_User_Profiles_Users")
+
+  @@schema("prj")
+}
+
+model User_States {
+  id_user_status     Int     @id(map: "PK_UserStates")
+  status_code        String  @db.VarChar(16)
+  status_description String  @db.VarChar(64)
+  Users              Users[]
+
+  @@schema("prj")
+}
+
+model User_Typologies {
+  id_user_typology     Int        @id(map: "PK_User_Typologies")
+  typology_code        String     @db.VarChar(32)
+  typology_description String     @db.VarChar(64)
+  Users_ex             Users_ex[]
+
+  @@schema("prj")
+}
+
+model User_UserNavigationParameters {
+  id_row          Int     @id(map: "PK_User_UserNavigationParameters") @default(autoincrement())
+  id_user         Int
+  page_key        String? @db.VarChar(64)
+  page_parameters String? @db.VarChar(4096)
+  Users           Users   @relation(fields: [id_user], references: [id_user], onUpdate: NoAction, map: "FK_User_UserNavigationParameters_Users")
+
+  @@schema("prj")
+}
+
+model User_UserNavigationTrace {
+  id_row        Int      @id(map: "PK_User_UserNavigationTrace") @default(autoincrement())
+  id_user       Int
+  page_group    String?  @db.VarChar(32)
+  page_subgroup String?  @db.VarChar(64)
+  page_url      String?  @db.VarChar(2048)
+  page_key      String?  @db.VarChar(64)
+  browser       String?  @db.VarChar(256)
+  trace_date    DateTime @default(now(), map: "DF_User_UserNavigationTrace_trace_date") @db.SmallDateTime
+  Users         Users    @relation(fields: [id_user], references: [id_user], onUpdate: NoAction, map: "FK_User_UserNavigationTrace_Users")
+
+  @@schema("prj")
+}
+
+model Users {
+  id_user                        Int                              @id(map: "PK_Users") @default(autoincrement())
+  id_user_status                 Int
+  first_name                     String                           @db.VarChar(64)
+  last_name                      String                           @db.VarChar(64)
+  full_name                      String                           @db.VarChar(129)
+  gender                         String?                          @db.VarChar(8)
+  avatar_filename                String?                          @db.VarChar(128)
+  email                          String?                          @db.VarChar(128)
+  mobile_phone                   String?                          @db.VarChar(32)
+  phone                          String?                          @db.VarChar(32)
+  fax                            String?                          @db.VarChar(32)
+  fiscal_code                    String?                          @db.VarChar(32)
+  first_login                    DateTime?                        @db.SmallDateTime
+  last_login                     DateTime?                        @db.SmallDateTime
+  last_change_password           DateTime?                        @db.SmallDateTime
+  qualifications                 String?                          @db.VarChar(64)
+  settings                       String?                          @db.VarChar(512)
+  Communication_Message          Communication_Message[]
+  JOURNAL_Master                 JOURNAL_Master[]
+  JOURNAL_NotificationTrick_User JOURNAL_NotificationTrick_User[]
+  User_Logins                    User_Logins[]
+  User_Profiles                  User_Profiles[]
+  User_UserNavigationParameters  User_UserNavigationParameters[]
+  User_UserNavigationTrace       User_UserNavigationTrace[]
+  User_States                    User_States                      @relation(fields: [id_user_status], references: [id_user_status], onUpdate: NoAction, map: "FK_Users_User_States")
+  Users_ex                       Users_ex?
+  Users_JOURNAL                  Users_JOURNAL[]
+
+  @@schema("prj")
+}
+
+model Users_ex {
+  id_user                Int                   @id(map: "PK_Users_ex")
+  id_user_typology       Int?
+  id_user_joboccupation  Int?
+  id_company             Int?
+  id_company_department  Int?
+  pec                    String?               @db.VarChar(128)
+  address                String?               @db.VarChar(1024)
+  external_url           String?               @db.VarChar(4096)
+  idS_company_visibility String?               @db.VarChar(4096)
+  Companies              Companies?            @relation(fields: [id_company], references: [id_company], onDelete: NoAction, onUpdate: NoAction, map: "FK_Users_ex_Companies")
+  User_Typologies        User_Typologies?      @relation(fields: [id_user_typology], references: [id_user_typology], onDelete: NoAction, onUpdate: NoAction, map: "FK_Users_ex_User_Typologies")
+  Users                  Users                 @relation(fields: [id_user], references: [id_user], onUpdate: NoAction, map: "FK_Users_ex_Users")
+  Users_JobOccupations   Users_JobOccupations? @relation(fields: [id_user_joboccupation], references: [id_user_joboccupation], onDelete: NoAction, onUpdate: NoAction, map: "FK_Users_ex_Users_JobOccupations")
+
+  @@schema("CookieMan")
+}
+
+model Users_JobOccupations {
+  id_user_joboccupation     Int        @id(map: "PK_Users_JobOccupations") @default(autoincrement())
+  id_company_owner          Int?
+  joboccupation_description String?    @db.VarChar(128)
+  available                 Boolean?
+  Users_ex                  Users_ex[]
+  Companies                 Companies? @relation(fields: [id_company_owner], references: [id_company], onDelete: NoAction, onUpdate: NoAction, map: "FK_Users_JobOccupations_Companies")
+
+  @@schema("CookieMan")
+}
+
+model Users_JOURNAL {
+  id_row         Int            @id(map: "PK_Users_JOURNAL_1") @default(autoincrement())
+  id_user        Int
+  id_journal     Int
+  dt_ins         DateTime?      @default(now(), map: "DF_Users_JOURNAL_dt_ins") @db.SmallDateTime
+  deltalized     String         @db.VarChar(Max)
+  JOURNAL_Master JOURNAL_Master @relation(fields: [id_journal], references: [id_journal], onUpdate: NoAction, map: "FK_Users_JOURNAL_JOURNAL_Master")
+  Users          Users          @relation(fields: [id_user], references: [id_user], onUpdate: NoAction, map: "FK_Users_JOURNAL_Users")
+
+  @@schema("prj")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model Website_Catalogue_States {
+  id_catalogue_status Int?
+
+  @@ignore
+  @@schema("CookieMan")
+}
+
+model Website_Form_Styles {
+  id_website_form_style    Int     @id(map: "PK_Website_Form_Styles") @default(autoincrement())
+  website_form_style_code  String? @db.VarChar(256)
+  website_form_style_name  String? @db.VarChar(64)
+  website_form_style_order Int?
+  website_form_style_image String? @db.VarChar(256)
+  website_form_style_css   String? @db.VarChar(2048)
+
+  @@schema("CookieMan")
+}
+
+model Website_Releases_Styles {
+  id_website_release_style    Int     @id(map: "PK_Website_Releases_Styles") @default(autoincrement())
+  website_release_style_code  String? @db.VarChar(256)
+  website_release_style_name  String? @db.VarChar(64)
+  website_release_style_order Int?
+  website_release_style_image String? @db.VarChar(256)
+  website_release_style_css   String? @db.VarChar(2048)
 
   @@schema("CookieMan")
 }
