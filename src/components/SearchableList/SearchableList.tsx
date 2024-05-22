@@ -33,6 +33,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { api } from "@/trpc/react";
+import { unknown } from "zod";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   initialData: TData[];
@@ -91,7 +92,7 @@ export function DataTable<TData, TValue>({
           [columnId]: value,
         };
 
-        updateData.mutate(resource);
+        updateData.mutate({ resource });
 
         console.log(resource);
       },

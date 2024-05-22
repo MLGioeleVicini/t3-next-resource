@@ -29,4 +29,20 @@ export const resourceRouter = createTRPCRouter({
         },
       });
     }),
+
+  create: publicProcedure
+    .input(
+      z.object({
+        resource_key: z.string().min(1),
+        resource_value: z.string().min(1),
+      }),
+    )
+    .mutation(({ ctx, input }) => {
+      return ctx.db.resources.create({
+        data: {
+          resource_key: input.resource_key,
+          resource_value: input.resource_value,
+        },
+      });
+    }),
 });
