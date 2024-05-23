@@ -9,6 +9,10 @@ datasource db {
   schemas  = ["CookieMan", "User", "prj"]
 }
 
+generator zod {
+  provider       = "zod-prisma-types"
+}
+
 model Resources {
   id_resources       Int            @id(map: "PK_Resources") @default(autoincrement())
   resource_extension String?        @db.VarChar(128)

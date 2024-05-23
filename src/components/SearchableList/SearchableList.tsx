@@ -33,7 +33,8 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { api } from "@/trpc/react";
-import { unknown } from "zod";
+import { unknown, z } from "zod";
+import { ResourcesSchema } from "prisma/generated/zod";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   initialData: TData[];
@@ -92,7 +93,7 @@ export function DataTable<TData, TValue>({
           [columnId]: value,
         };
 
-        updateData.mutate({ resource });
+        updateData.mutate(ResourcesSchema.parse(resource));
 
         console.log(resource);
       },
