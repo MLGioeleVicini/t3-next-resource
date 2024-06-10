@@ -1,55 +1,37 @@
 "use client";
 
-import EditableCell from "@/components/SearchableList/EditableCell";
-import { Button } from "@/components/ui/button";
+import EditableCell from "@/components/List/EditableCell";
 import { type Resources } from "@prisma/client";
 import { type ColumnDef } from "@tanstack/react-table";
 import dayjs from "dayjs";
 
 export const columns: ColumnDef<Resources>[] = [
   {
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => {
-            column.toggleSorting(column.getIsSorted() === "asc");
-          }}
-        >
-          ID +-
-        </Button>
-      );
-    },
+    header: "ID",
     accessorKey: "id_resources",
+    filterFn: "equalsString",
+    // sortingFn: fuzzySort,
   },
   {
     header: "Page",
     accessorKey: "page_keys",
     cell: EditableCell,
+    filterFn: "includesStringSensitive",
   },
   {
     header: "Resource Key",
     accessorKey: "resource_key",
     cell: EditableCell,
+    filterFn: "includesStringSensitive",
   },
   {
     header: "Resource Value",
     accessorKey: "resource_value",
     cell: EditableCell,
+    filterFn: "includesStringSensitive",
   },
   {
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => {
-            column.toggleSorting(column.getIsSorted() === "asc");
-          }}
-        >
-          Ultimo aggiornamento +-
-        </Button>
-      );
-    },
+    header: "Ultimo aggiornamento",
     accessorKey: "last_modified",
     cell: ({ row }) => {
       const date: string = dayjs(row.getValue("last_modified")).format(
@@ -58,5 +40,6 @@ export const columns: ColumnDef<Resources>[] = [
 
       return <div>{date}</div>;
     },
+    // sortingFn: fuzzySort,
   },
 ];

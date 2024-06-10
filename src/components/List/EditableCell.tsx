@@ -1,11 +1,7 @@
-import { type HTMLInputTypeAttribute, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "../ui/input";
 import { type CellContext } from "@tanstack/react-table";
 import { type Resources } from "@prisma/client";
-
-type InputBaseProps = {
-  type?: HTMLInputTypeAttribute;
-};
 
 const EditableCell = ({
   getValue,
@@ -25,15 +21,13 @@ const EditableCell = ({
   }, [initialValue]);
 
   return (
-    <div>
-      <Input
-        value={value}
-        onChange={(e) => {
-          setValue(e.target.value);
-        }}
-        onBlur={onBlur}
-      />
-    </div>
+    <Input
+      value={value as string}
+      onChange={(e) => {
+        setValue(e.target.value);
+      }}
+      onBlur={onBlur}
+    />
   );
 };
 
